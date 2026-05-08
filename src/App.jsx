@@ -376,70 +376,54 @@ export default function App() {
               hasMana={hasMana}
               hasEnergy={hasEnergy}
               setShowPicker={setShowPicker}
+              ver={ver}
               C={C}
             />
           )}
         </div>
 
-        <div className={`panel build-panel ${(activeTab === 'build' || !activeTab) ? 'active' : ''}`}>
-          <Inventory 
-            equipped={equipped}
-            clearBuild={clearBuild}
-            onSlotDragStart={onSlotDragStart}
-            onSlotDragOver={onSlotDragOver}
-            onSlotDrop={onSlotDrop}
-            onDragEnd={onDragEnd}
-            removeItem={removeItem}
-            setTooltip={setTooltip}
-            setMpos={setMpos}
-            dragOverSlot={dragOverSlot}
-            ver={ver}
-            C={C}
-          />
-        </div>
+        <div className={`panel-group ${(activeTab === 'build' || activeTab === 'shop' || !activeTab) ? 'active' : ''}`}>
+          <div className={`panel build-panel ${(activeTab === 'build' || !activeTab) ? 'active' : ''}`}>
+            <Inventory 
+              equipped={equipped}
+              clearBuild={clearBuild}
+              onSlotDragStart={onSlotDragStart}
+              onSlotDragOver={onSlotDragOver}
+              onSlotDrop={onSlotDrop}
+              onDragEnd={onDragEnd}
+              removeItem={removeItem}
+              setTooltip={setTooltip}
+              setMpos={setMpos}
+              dragOverSlot={dragOverSlot}
+              ver={ver}
+              C={C}
+            />
+          </div>
 
-        <div className={`panel shop-panel ${(activeTab === 'shop' || !activeTab) ? 'active' : ''}`}>
-          <Shop 
-            shopSearch={shopSearch}
-            setShopSearch={setShopSearch}
-            shopCat={shopCat}
-            setShopCat={setShopCat}
-            shopItems={shopItems}
-            addItem={addItem}
-            onShopDragStart={onShopDragStart}
-            onDragEnd={onDragEnd}
-            setTooltip={setTooltip}
-            setMpos={setMpos}
-            ver={ver}
-            C={C}
-          />
+          <div className={`panel shop-panel ${(activeTab === 'shop' || !activeTab) ? 'active' : ''}`}>
+            <Shop 
+              shopSearch={shopSearch}
+              setShopSearch={setShopSearch}
+              shopCat={shopCat}
+              setShopCat={setShopCat}
+              shopItems={shopItems}
+              addItem={addItem}
+              onShopDragStart={onShopDragStart}
+              onDragEnd={onDragEnd}
+              setTooltip={setTooltip}
+              setMpos={setMpos}
+              ver={ver}
+              C={C}
+            />
+          </div>
         </div>
       </main>
 
-      {/* Mobile Navigation */}
       {activeTab && (
         <nav className="mobile-nav">
-          <button 
-            id="nav-stats"
-            className={activeTab === 'stats' ? 'active' : ''} 
-            onClick={() => setActiveTab('stats')}
-          >
-            STATS
-          </button>
-          <button 
-            id="nav-build"
-            className={activeTab === 'build' ? 'active' : ''} 
-            onClick={() => setActiveTab('build')}
-          >
-            BUILD
-          </button>
-          <button 
-            id="nav-shop"
-            className={activeTab === 'shop' ? 'active' : ''} 
-            onClick={() => setActiveTab('shop')}
-          >
-            SHOP
-          </button>
+          <button id="nav-stats" className={activeTab === 'stats' ? 'active' : ''} onClick={() => setActiveTab('stats')}>STATS</button>
+          <button id="nav-build" className={activeTab === 'build' ? 'active' : ''} onClick={() => setActiveTab('build')}>BUILD</button>
+          <button id="nav-shop" className={activeTab === 'shop' ? 'active' : ''} onClick={() => setActiveTab('shop')}>SHOP</button>
         </nav>
       )}
 
@@ -502,12 +486,12 @@ function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp
   );
 }
 
-function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEnergy, setShowPicker, C }) {
+function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEnergy, setShowPicker, ver, C }) {
   return (
     <div className="champ-details">
       <div className="champ-header-card">
         <div className="champ-info">
-          <img src={`${DDR}/cdn/${champDetail.version}/img/champion/${champDetail.image.full}`} alt={champDetail.name} className="champ-avatar" />
+          <img src={`${DDR}/cdn/${ver}/img/champion/${champDetail.image.full}`} alt={champDetail.name} className="champ-avatar" />
           <div className="champ-meta">
             <div className="champ-name">{champDetail.name}</div>
             <div className="champ-title">{champDetail.title}</div>

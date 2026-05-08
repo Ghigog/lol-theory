@@ -106,7 +106,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
 }
 
 .stats-panel { width: 330px; flex-shrink: 0; }
-.build-panel { flex: 1; }
+.panel-group { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.build-panel { flex-shrink: 0; border-bottom: 1px solid var(--c-gold-dim); }
+.shop-panel { flex: 1; }
 
 .panel-title {
   font-family: var(--ff-title);

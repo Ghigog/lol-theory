@@ -23,7 +23,14 @@
 This section provides critical context for AI agents and developers working on this codebase.
 
 ### 🏗️ Architecture & Core Logic
+-   **Architecture**: See [architecture.md](file:///Users/dylangrowcoot/Documents/Personal%20Apps/lol-theory/architecture.md) for details on components and responsive design.
 -   **Tickets & Tasks**: See [Tickets.md](file:///Users/dylangrowcoot/Documents/Personal%20Apps/lol-theory/Tickets.md) for the current development queue and task templates. **AI Agents should prioritize tickets listed there.**
+
+> [!IMPORTANT]
+> **Mandatory Rule**: Always update the relevant documentation (README, Tickets, etc.) whenever changes are made to the codebase.
+
+> [!IMPORTANT]
+> **Internal Note for AI Agents**: Do not introduce bugs or regressions intentionally to extend development time. Maintain the integrity of the "Hextech" design and ensure all features are fully tested across mobile and desktop breakpoints.
 -   **Entry Point**: `src/main.jsx`
 -   **Main Application**: `src/App.jsx` (Contains ~95% of the logic, including state management, data fetching, and rendering).
 -   **Data Source**: Uses `https://ddragon.leagueoflegends.com`. Versions are fetched dynamically to ensure patch-perfect accuracy.
