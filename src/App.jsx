@@ -195,6 +195,20 @@ export default function App() {
     setEquipped(next);
   };
 
+  const clearBuild = () => {
+    setEquipped(Array(6).fill(null));
+  };
+
+  const resetAll = () => {
+    setChampDetail(null);
+    setEquipped(Array(6).fill(null));
+    setLevel(1);
+    setShowPicker(true);
+    setChampSearch("");
+    setShopSearch("");
+    setShopCat("all");
+  };
+
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
   const onShopDragStart = (e, item) => {
     setDragging({ item, src: "shop" });
@@ -303,6 +317,10 @@ export default function App() {
         .cat-btn:hover{color:${C.GL}!important;background:rgba(200,155,60,.12)!important;}
         .panel-title{font-family:${C.FFT};font-size:12px;color:${C.G};letter-spacing:3px;margin-bottom:10px;text-transform:uppercase;}
         .gold-divider{height:1px;background:linear-gradient(90deg,transparent,${C.GX} 20%,${C.GX} 80%,transparent);}
+        .action-btn{background:none;border:1px solid ${C.GX};color:${C.TD};cursor:pointer;padding:4px 10px;font-size:10px;font-family:${C.FFT};border-radius:2px;letter-spacing:1px;transition:all .15s ease;text-transform:uppercase;}
+        .action-btn:hover{border-color:${C.G};color:${C.G};background:rgba(200,155,60,.1);}
+        .reset-btn{border-color:rgba(180,20,20,.4);color:rgba(180,20,20,.8);}
+        .reset-btn:hover{border-color:#EF4444;color:#EF4444;background:rgba(239,68,68,.1);}
       `}</style>
 
       {/* ══ Header ══════════════════════════════════════════════════════════════ */}
@@ -318,6 +336,9 @@ export default function App() {
                 💰 {totalGold.toLocaleString()}g
               </span>
             )}
+            <button className="action-btn reset-btn" onClick={resetAll} style={{ marginLeft:8 }}>
+              Reset All
+            </button>
             <span style={{ color:C.TD, fontSize:11 }}>Patch {ver}</span>
           </div>
         )}
@@ -467,11 +488,18 @@ export default function App() {
 
           {/* ── Inventory ── */}
           <div style={{ padding:"12px 14px 10px", borderBottom:`1px solid ${C.GX}`, flexShrink:0 }}>
-            <div className="panel-title" style={{ marginBottom:8 }}>
-              Item Build
-              <span style={{ marginLeft:10, color:C.TD, fontSize:10, fontFamily:C.FF, letterSpacing:0.5, textTransform:"none" }}>
-                Drag from shop · click to remove
-              </span>
+            <div className="panel-title" style={{ marginBottom:8, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div>
+                Item Build
+                <span style={{ marginLeft:10, color:C.TD, fontSize:10, fontFamily:C.FF, letterSpacing:0.5, textTransform:"none" }}>
+                  Drag from shop · click to remove
+                </span>
+              </div>
+              {equipped.some(Boolean) && (
+                <button className="action-btn" onClick={clearBuild}>
+                  Clear Build
+                </button>
+              )}
             </div>
 
             <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:8 }}>
