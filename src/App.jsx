@@ -25,8 +25,8 @@ const formatDescription = (html = "") => {
   res = res.replace(/<(passive|active|status)>(.*?)<\/\1>/gi, '<div class="d-header">$2</div>');
 
   // 4. Handle other Riot-specific tags (like <flavorText>, <mainText>, damage types)
-  // We'll keep their content but convert them to something harmless or remove the tag
-  res = res.replace(/<(flavorText|mainText|rule)>(.*?)<\/\1>/gs, '<div class="d-block">$2</div>');
+  res = res.replace(/<(flavorText|rule)>(.*?)<\/\1>/gs, '<div class="d-extended">$2</div>');
+  res = res.replace(/<mainText>(.*?)<\/mainText>/gs, '<div class="d-block">$2</div>');
   res = res.replace(/<(physicalDamage|magicDamage|trueDamage|healing|shield|speed|attackSpeed|lifesteal|keywordStealth|status|recharge)>(.*?)<\/\1>/gi, '<span class="d-attn">$2</span>');
 
   // 5. Final cleanup: handle remaining <br>, strip unknown tags, and fix whitespace
@@ -100,6 +100,16 @@ export default function App() {
   const [dragging,      setDragging]    = useState(null);
   const [dragOverSlot,  setDragOverSlot]= useState(null);
   const [showPicker,    setShowPicker]  = useState(true);
+  const [shiftPressed,  setShiftPressed]= useState(false);
+
+  // ── Global Listeners ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const down = (e) => { if (e.key === "Shift") setShiftPressed(true); };
+    const up   = (e) => { if (e.key === "Shift") setShiftPressed(false); };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
+  }, []);
 
   // ── Fetch Data ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -350,6 +360,9 @@ export default function App() {
         .d-attn { color: #fff; font-weight: 700; }
         .d-header { color: ${C.G}; font-weight: 700; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
         .d-block { margin-bottom: 8px; }
+        .d-extended { display: none; color: ${C.T}; font-style: italic; margin-top: 8px; padding-top: 8px; border-top: 1px solid ${C.GX}; }
+        .show-extended .d-extended { display: block; }
+        .shift-hint { margin-top: 12px; font-size: 9px; color: ${C.G}; letter-spacing: 1px; text-align: center; border-top: 1px solid ${C.GX}; padding-top: 8px; opacity: 0.7; }
       `}</style>
 
       {/* ══ Header ══════════════════════════════════════════════════════════════ */}
@@ -643,7 +656,7 @@ export default function App() {
       </div>
 
       {/* ══ Item Tooltip ════════════════════════════════════════════════════════ */}
-      {tooltip && ver && <ItemTooltip item={tooltip} pos={mpos} ver={ver} C={C} FMT={ITEM_STAT_FMT} format={formatDescription} />}
+      {tooltip && ver && <ItemTooltip item={tooltip} pos={mpos} ver={ver} C={C} FMT={ITEM_STAT_FMT} format={formatDescription} shift={shiftPressed} />}
     </div>
   );
 }
@@ -659,10 +672,10 @@ function Chip({ label, val, C }) {
   );
 }
 
-function ItemTooltip({ item, pos, ver, C, FMT, format }) {
+function ItemTooltip({ item, pos, ver, C, FMT, format, shift }) {
   const WIN_W = typeof window !== "undefined" ? window.innerWidth : 1200;
   const WIN_H = typeof window !== "undefined" ? window.innerHeight : 800;
-  const TW = 270, TH_EST = 380;
+  const TW = 280, TH_EST = 400;
   const left = pos.x + 14 + TW > WIN_W ? pos.x - TW - 8 : pos.x + 14;
   const top  = pos.y - 10 + TH_EST > WIN_H ? WIN_H - TH_EST - 10 : Math.max(10, pos.y - 10);
 
@@ -688,7 +701,7 @@ function ItemTooltip({ item, pos, ver, C, FMT, format }) {
           {item.gold && (
             <div style={{ marginTop:4, display:"flex", gap:8, alignItems:"center" }}>
               <span style={{ color:C.G, fontSize:12 }}>💰 {item.gold.total?.toLocaleString()}g</span>
-              {item.gold.sell > 0 && <span style={{ color:C.TD, fontSize:10 }}>→ sell {item.gold.sell}g</span>}
+              {shift && item.gold.sell > 0 && <span style={{ color:C.TD, fontSize:10 }}>→ sell {item.gold.sell}g</span>}
             </div>
           )}
         </div>
@@ -712,18 +725,23 @@ function ItemTooltip({ item, pos, ver, C, FMT, format }) {
       {/* Description */}
       {descHtml && (
         <div 
-          style={{ color:C.TD, fontSize:11, lineHeight:1.55, maxHeight:300, overflowY:"auto", paddingRight:4 }}
+          className={shift ? "show-extended" : ""}
+          style={{ color:C.TD, fontSize:11, lineHeight:1.55, maxHeight:shift ? 450 : 220, overflowY:"auto", paddingRight:4 }}
           dangerouslySetInnerHTML={{ __html: descHtml }}
         />
       )}
 
-      {/* Tags */}
-      {item.tags?.length > 0 && (
-        <div style={{ marginTop:8, display:"flex", gap:4, flexWrap:"wrap" }}>
+      {/* Tags (Extended only) */}
+      {shift && item.tags?.length > 0 && (
+        <div style={{ marginTop:12, paddingTop:8, borderTop:`1px solid ${C.GX}`, display:"flex", gap:4, flexWrap:"wrap" }}>
           {item.tags.map(t => (
             <span key={t} style={{ background:C.BD, border:`1px solid ${C.B}`, color:C.TD, fontSize:9, padding:"2px 5px", borderRadius:2 }}>{t}</span>
           ))}
         </div>
+      )}
+
+      {!shift && (
+        <div className="shift-hint">HOLD [SHIFT] FOR DETAILS</div>
       )}
     </div>
   );
