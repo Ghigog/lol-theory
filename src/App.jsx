@@ -248,7 +248,7 @@ export default function App() {
     B:  "#1E3A5F",   // blue border
     BD: "#0A1628",   // dark input bg
     T:  "#C8AA6E",   // secondary text (warm)
-    TD: "#4A5568",   // dim text
+    TD: "#8A96AB",   // dim text (lightened for better readability)
     FF: `'Rajdhani','Segoe UI',sans-serif`,
     FFT:`'Cinzel',Georgia,serif`,
   };
