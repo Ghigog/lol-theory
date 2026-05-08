@@ -23,6 +23,7 @@
 This section provides critical context for AI agents and developers working on this codebase.
 
 ### 🏗️ Architecture & Core Logic
+-   **Tickets & Tasks**: See [Tickets.md](file:///Users/dylangrowcoot/Documents/Personal%20Apps/lol-theory/Tickets.md) for the current development queue and task templates. **AI Agents should prioritize tickets listed there.**
 -   **Entry Point**: `src/main.jsx`
 -   **Main Application**: `src/App.jsx` (Contains ~95% of the logic, including state management, data fetching, and rendering).
 -   **Data Source**: Uses `https://ddragon.leagueoflegends.com`. Versions are fetched dynamically to ensure patch-perfect accuracy.
@@ -86,11 +87,12 @@ lol-theory/
 
 ---
 
-## 📝 Roadmap
--   [ ] **Ability Scaling**: Add logic to calculate damage for individual champion abilities (Q/W/E/R).
--   [ ] **Rune Integration**: Allow users to select runes and see their impact on stats.
--   [ ] **Advanced Item Passives**: Implement complex passives (e.g., Death's Dance, Infinity Edge crit bonus).
--   [ ] **Shareable Builds**: Generate unique URLs for specific champion/item/level configurations.
+---
+
+## 📂 Project Management
+
+For the current development queue, feature requests, and technical tasks, please refer to:
+👉 **[Tickets.md](file:///Users/dylangrowcoot/Documents/Personal%20Apps/lol-theory/Tickets.md)**
 
 ---
 

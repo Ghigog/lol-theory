@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import "./App.css";
 
 const DDR = "https://ddragon.leagueoflegends.com";
 
@@ -101,6 +102,7 @@ export default function App() {
   const [dragOverSlot,  setDragOverSlot]= useState(null);
   const [showPicker,    setShowPicker]  = useState(true);
   const [shiftPressed,  setShiftPressed]= useState(false);
+  const [activeTab,     setActiveTab]   = useState(null);
 
   // ── Global Listeners ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -108,7 +110,24 @@ export default function App() {
     const up   = (e) => { if (e.key === "Shift") setShiftPressed(false); };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
-    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
+    return () => { 
+      window.removeEventListener("keydown", down); 
+      window.removeEventListener("keyup", up); 
+    };
+  }, []);
+
+  useEffect(() => {
+    const res = () => {
+      const isMob = window.innerWidth <= 768;
+      if (isMob) {
+        setActiveTab(prev => prev || 'stats');
+      } else {
+        setActiveTab(null);
+      }
+    };
+    window.addEventListener("resize", res);
+    res();
+    return () => window.removeEventListener("resize", res);
   }, []);
 
   // ── Fetch Data ──────────────────────────────────────────────────────────────
@@ -324,425 +343,373 @@ export default function App() {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div
-      style={{ display:"flex", flexDirection:"column", height:"100vh", background:C.BG, fontFamily:C.FF, color:C.GL, overflow:"hidden" }}
+      style={{ display:"flex", flexDirection:"column", height:"100svh", background:C.BG, fontFamily:C.FF, color:C.GL, overflow:"hidden" }}
       onMouseMove={e => tooltip && setMpos({ x: e.clientX, y: e.clientY })}
+      className={activeTab ? "mobile-view" : "desktop-view"}
     >
-      {/* ── Global Styles ── */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0;}
-        ::-webkit-scrollbar{width:4px;height:4px;}
-        ::-webkit-scrollbar-track{background:${C.BG};}
-        ::-webkit-scrollbar-thumb{background:${C.GX};border-radius:2px;}
-        ::-webkit-scrollbar-thumb:hover{background:${C.G};}
-        input{font-family:${C.FF};outline:none;}
-        input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;cursor:pointer;}
-        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:${C.G};border:2px solid ${C.BG};cursor:pointer;}
-        .champ-icon:hover{border-color:${C.G}!important;transform:scale(1.06);z-index:2;}
-        .champ-icon{transition:all .15s ease;cursor:pointer;}
-        .item-cell:hover{border-color:${C.G}!important;transform:scale(1.06);z-index:2;}
-        .item-cell{transition:all .15s ease;cursor:pointer;}
-        .slot-box{transition:border-color .15s,background .15s;}
-        .slot-box:hover .slot-rm{display:flex!important;}
-        .cat-btn{transition:all .15s ease;cursor:pointer;}
-        .cat-btn:hover{color:${C.GL}!important;background:rgba(200,155,60,.12)!important;}
-        .panel-title{font-family:${C.FFT};font-size:12px;color:${C.G};letter-spacing:3px;margin-bottom:10px;text-transform:uppercase;}
-        .gold-divider{height:1px;background:linear-gradient(90deg,transparent,${C.GX} 20%,${C.GX} 80%,transparent);}
-        .action-btn{background:none;border:1px solid ${C.GX};color:${C.TD};cursor:pointer;padding:4px 10px;font-size:10px;font-family:${C.FFT};border-radius:2px;letter-spacing:1px;transition:all .15s ease;text-transform:uppercase;}
-        .action-btn:hover{border-color:${C.G};color:${C.G};background:rgba(200,155,60,.1);}
-        .reset-btn{border-color:rgba(180,20,20,.4);color:rgba(180,20,20,.8);}
-        .reset-btn:hover{border-color:#EF4444;color:#EF4444;background:rgba(239,68,68,.1);}
+      <Header 
+        ver={ver} 
+        totalGold={totalGold} 
+        champDetail={champDetail} 
+        equipped={equipped} 
+        resetAll={resetAll} 
+        C={C} 
+      />
 
-        /* Tooltip formatting */
-        .d-stats { margin-bottom: 10px; color: #A8FF78; }
-        .stat-line { display: flex; gap: 6px; margin-bottom: 2px; }
-        .bullet { color: ${C.G}; font-weight: bold; }
-        .d-attn { color: #fff; font-weight: 700; }
-        .d-header { color: ${C.G}; font-weight: 700; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
-        .d-block { margin-bottom: 8px; }
-        .d-extended { display: none; color: ${C.T}; font-style: italic; margin-top: 8px; padding-top: 8px; border-top: 1px solid ${C.GX}; }
-        .show-extended .d-extended { display: block; }
-        .shift-hint { margin-top: 12px; font-size: 9px; color: ${C.G}; letter-spacing: 1px; text-align: center; border-top: 1px solid ${C.GX}; padding-top: 8px; opacity: 0.7; }
-      `}</style>
-
-      {/* ══ Header ══════════════════════════════════════════════════════════════ */}
-      <div style={{ display:"flex", alignItems:"center", gap:14, padding:"8px 18px", borderBottom:`1px solid ${C.GX}`, background:C.P, flexShrink:0 }}>
-        <div style={{ fontFamily:C.FFT, fontSize:20, color:C.G, letterSpacing:3, fontWeight:600 }}>
-          ⚔ THEORY FORGE
-        </div>
-        <div style={{ color:C.TD, fontSize:11, letterSpacing:1.5 }}>League of Legends Build Simulator</div>
-        {ver && (
-          <div style={{ marginLeft:"auto", display:"flex", gap:16, alignItems:"center" }}>
-            {champDetail && equipped.some(Boolean) && (
-              <span style={{ color:C.G, fontSize:12, fontFamily:C.FFT }}>
-                💰 {totalGold.toLocaleString()}g
-              </span>
-            )}
-            <button className="action-btn reset-btn" onClick={resetAll} style={{ marginLeft:8 }}>
-              Reset All
-            </button>
-            <span style={{ color:C.TD, fontSize:11 }}>Patch {ver}</span>
-          </div>
-        )}
-      </div>
-
-      {/* ══ Body ════════════════════════════════════════════════════════════════ */}
-      <div style={{ display:"flex", flex:1, overflow:"hidden", gap:"1px", background:C.GX }}>
-
-        {/* ─────── LEFT: CHAMPION ─────────────────────────────────────────── */}
-        <div style={{ width:330, display:"flex", flexDirection:"column", background:C.P, flexShrink:0, overflow:"hidden" }}>
-
+      <main className="main-content">
+        <div className={`panel stats-panel ${(activeTab === 'stats' || !activeTab) ? 'active' : ''}`}>
           {showPicker ? (
-            /* Champion Grid Picker */
-            <div style={{ display:"flex", flexDirection:"column", flex:1, overflow:"hidden", padding:"14px 12px" }}>
-              <div className="panel-title">Select Champion</div>
-              <input
-                value={champSearch}
-                onChange={e => setChampSearch(e.target.value)}
-                placeholder="Search champions…"
-                style={{ background:C.BD, border:`1px solid ${C.B}`, color:C.GL, padding:"6px 10px", fontSize:13, borderRadius:3, marginBottom:10, flexShrink:0 }}
-              />
-              <div style={{ flex:1, overflowY:"auto", display:"flex", flexWrap:"wrap", gap:5, alignContent:"flex-start" }}>
-                {filteredChamps.map(c => (
-                  <div
-                    key={c.id}
-                    className="champ-icon"
-                    onClick={() => pickChamp(c)}
-                    title={c.name}
-                    style={{ position:"relative" }}
-                  >
-                    <img
-                      src={`${DDR}/cdn/${ver}/img/champion/${c.image.full}`}
-                      alt={c.name}
-                      style={{ width:46, height:46, display:"block", border:`2px solid ${C.B}`, borderRadius:2 }}
-                    />
-                  </div>
-                ))}
-                {filteredChamps.length === 0 && (
-                  <div style={{ color:C.TD, fontSize:13, paddingTop:10 }}>No champions found</div>
-                )}
-              </div>
-            </div>
-
-          ) : champDetail ? (
-            /* Champion Detail + Stats */
-            <div style={{ display:"flex", flexDirection:"column", flex:1, overflow:"hidden" }}>
-
-              {/* Champion header card */}
-              <div style={{ background:C.P2, padding:"12px 14px", borderBottom:`1px solid ${C.GX}`, flexShrink:0 }}>
-                <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
-                  <div style={{ position:"relative", flexShrink:0 }}>
-                    <img
-                      src={`${DDR}/cdn/${ver}/img/champion/${champDetail.image.full}`}
-                      alt={champDetail.name}
-                      style={{ width:64, height:64, border:`2px solid ${C.G}`, borderRadius:2, display:"block" }}
-                    />
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontFamily:C.FFT, fontSize:18, color:C.G, letterSpacing:1, lineHeight:1.1 }}>{champDetail.name}</div>
-                    <div style={{ color:C.TD, fontSize:11, marginTop:3, fontStyle:"italic" }}>{champDetail.title}</div>
-                    <div style={{ display:"flex", gap:6, marginTop:5, flexWrap:"wrap" }}>
-                      {champDetail.tags?.map(t => (
-                        <span key={t} style={{ background:C.BD, border:`1px solid ${C.B}`, color:C.T, fontSize:10, padding:"2px 6px", borderRadius:2 }}>{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowPicker(true)}
-                    style={{ background:"none", border:`1px solid ${C.GX}`, color:C.T, cursor:"pointer", padding:"4px 8px", fontSize:10, fontFamily:C.FFT, borderRadius:2, letterSpacing:1, flexShrink:0 }}
-                  >
-                    CHANGE
-                  </button>
-                </div>
-
-                {/* Level Control */}
-                <div style={{ marginTop:12, display:"flex", alignItems:"center", gap:10 }}>
-                  <span style={{ color:C.TD, fontSize:11, letterSpacing:1.5, flexShrink:0 }}>LEVEL</span>
-                  <input
-                    type="range" min={1} max={18} value={level}
-                    onChange={e => setLevel(+e.target.value)}
-                    style={{ flex:1, background:`linear-gradient(to right,${C.G} ${((level-1)/17)*100}%,${C.BD} ${((level-1)/17)*100}%)` }}
-                  />
-                  <div style={{ background:C.G, color:C.BG, fontFamily:C.FFT, fontWeight:700, fontSize:15, width:30, height:30, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    {level}
-                  </div>
-                </div>
-              </div>
-
-              {/* Stat bars */}
-              <div style={{ flex:1, overflowY:"auto", padding:"10px 14px" }}>
-                {stats && STATS.map(cfg => {
-                  if (cfg.resource && !hasMana && !hasEnergy) return null;
-                  const total = stats.total[cfg.k] ?? 0;
-                  const base  = stats.base[cfg.k]  ?? 0;
-                  const bonus = total - base;
-                  if (cfg.itemOnly && bonus < 0.001) return null;
-
-                  const barMax  = cfg.max;
-                  const totalPct  = Math.min(total / barMax, 1) * 100;
-                  const basePct   = total > 0 ? (base / total) * totalPct : 0;
-                  const bonusPct  = totalPct - basePct;
-
-                  return (
-                    <div key={cfg.k} style={{ marginBottom: cfg.sub ? 3 : 8 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        {/* Label */}
-                        <span style={{ color:C.TD, fontSize:cfg.sub?10:12, width:102, flexShrink:0, paddingLeft:cfg.sub?10:0, letterSpacing:0.5 }}>
-                          {cfg.label}
-                        </span>
-                        {/* Bar */}
-                        <div style={{ flex:1, height:cfg.sub?3:5, background:C.BD, borderRadius:2, overflow:"hidden" }}>
-                          <div style={{ display:"flex", height:"100%", transition:"width 0.35s" }}>
-                            <div style={{ width:`${basePct}%`, background:cfg.color, opacity:0.75, transition:"width .35s" }} />
-                            <div style={{ width:`${bonusPct}%`, background:C.G, transition:"width .35s" }} />
-                          </div>
-                        </div>
-                        {/* Value */}
-                        <div style={{ minWidth:80, textAlign:"right", flexShrink:0 }}>
-                          <span style={{ color:bonus>0.001?C.GL:C.T, fontSize:cfg.sub?11:13, fontWeight:bonus>0.001?600:400 }}>
-                            {cfg.fmt(total)}
-                          </span>
-                          {bonus > 0.001 && (
-                            <span style={{ color:C.G, fontSize:9, marginLeft:4, opacity:0.9 }}>
-                              ({cfg.fmtB(bonus)})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Footer info */}
-                <div className="gold-divider" style={{ margin:"12px 0" }} />
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12 }}>
-                  <Chip label="Resource" val={champDetail.partype} C={C} />
-                  <Chip label="Range"    val={champDetail.stats.attackrange} C={C} />
-                  <Chip label="Movespeed" val={champDetail.stats.movespeed} C={C} />
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* ─────── RIGHT: BUILD ────────────────────────────────────────────── */}
-        <div style={{ flex:1, display:"flex", flexDirection:"column", background:C.P, overflow:"hidden" }}>
-
-          {/* ── Inventory ── */}
-          <div style={{ padding:"12px 14px 10px", borderBottom:`1px solid ${C.GX}`, flexShrink:0 }}>
-            <div className="panel-title" style={{ marginBottom:8, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <div>
-                Item Build
-                <span style={{ marginLeft:10, color:C.TD, fontSize:10, fontFamily:C.FF, letterSpacing:0.5, textTransform:"none" }}>
-                  Drag from shop · click to remove
-                </span>
-              </div>
-              {equipped.some(Boolean) && (
-                <button className="action-btn" onClick={clearBuild}>
-                  Clear Build
-                </button>
-              )}
-            </div>
-
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:8 }}>
-              {equipped.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="slot-box"
-                  draggable={!!item}
-                  onDragStart={e => onSlotDragStart(e, idx)}
-                  onDragOver={e => onSlotDragOver(e, idx)}
-                  onDrop={e => onSlotDrop(e, idx)}
-                  onDragLeave={() => setDragOverSlot(null)}
-                  onDragEnd={onDragEnd}
-                  onClick={() => item && removeItem(idx)}
-                  onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }) : undefined}
-                  onMouseLeave={() => setTooltip(null)}
-                  style={{
-                    position:"relative", paddingTop:"100%",
-                    background: dragOverSlot===idx ? "rgba(200,155,60,.18)" : (item ? C.BD : "#040D18"),
-                    border:`2px solid ${dragOverSlot===idx ? C.G : (item ? C.GX : C.B)}`,
-                    borderRadius:3, cursor:item?"pointer":"default",
-                  }}
-                >
-                  {item ? (
-                    <>
-                      <img
-                        src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`}
-                        alt={item.name}
-                        style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", borderRadius:2 }}
-                      />
-                      <div style={{ position:"absolute", bottom:0, left:0, right:0, background:"rgba(0,0,0,.78)", color:C.G, fontSize:9, textAlign:"center", padding:"1px 0", fontFamily:C.FFT, letterSpacing:0.5 }}>
-                        {item.gold?.total?.toLocaleString()}g
-                      </div>
-                      <div className="slot-rm" style={{ display:"none", position:"absolute", inset:0, background:"rgba(180,20,20,.65)", alignItems:"center", justifyContent:"center", fontSize:20, color:"#fff", borderRadius:2, fontWeight:700 }}>
-                        ✕
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", color:C.B, fontSize:20, letterSpacing:0 }}>
-                      ＋
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Shop ── */}
-          <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", padding:"10px 14px" }}>
-            <div className="panel-title">Shop</div>
-
-            {/* Search */}
-            <input
-              value={shopSearch}
-              onChange={e => setShopSearch(e.target.value)}
-              placeholder="Search items…"
-              style={{ background:C.BD, border:`1px solid ${C.B}`, color:C.GL, padding:"6px 10px", fontSize:13, borderRadius:3, marginBottom:8, flexShrink:0 }}
+            <ChampionPicker 
+              champSearch={champSearch}
+              setChampSearch={setChampSearch}
+              filteredChamps={filteredChamps}
+              pickChamp={pickChamp}
+              ver={ver}
+              C={C}
             />
-
-            {/* Category tabs */}
-            <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:10, flexShrink:0 }}>
-              {SHOP_CATS.map(cat => (
-                <button
-                  key={cat.id}
-                  className="cat-btn"
-                  onClick={() => setShopCat(cat.id)}
-                  style={{
-                    background: shopCat===cat.id ? "rgba(200,155,60,.18)" : "transparent",
-                    border:`1px solid ${shopCat===cat.id ? C.G : C.B}`,
-                    color: shopCat===cat.id ? C.G : C.TD,
-                    padding:"3px 9px", fontSize:11, fontFamily:C.FF, borderRadius:2,
-                  }}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Item grid */}
-            <div style={{ flex:1, overflowY:"auto" }}>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:5, alignContent:"flex-start" }}>
-                {shopItems.map(item => (
-                  <div
-                    key={item.itemId}
-                    className="item-cell"
-                    draggable
-                    onDragStart={e => onShopDragStart(e, item)}
-                    onDragEnd={onDragEnd}
-                    onClick={() => addItem(item)}
-                    onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }}
-                    onMouseLeave={() => setTooltip(null)}
-                    onMouseMove={e => setMpos({ x:e.clientX, y:e.clientY })}
-                    style={{ position:"relative", width:52, height:52, border:`2px solid ${C.GX}`, borderRadius:3, overflow:"hidden", flexShrink:0 }}
-                  >
-                    <img
-                      src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`}
-                      alt={item.name}
-                      style={{ width:"100%", height:"100%", display:"block" }}
-                    />
-                    <div style={{ position:"absolute", bottom:0, left:0, right:0, background:"rgba(0,0,0,.8)", color:C.G, fontSize:8, textAlign:"center", fontFamily:C.FFT, letterSpacing:0.3 }}>
-                      {item.gold?.total?.toLocaleString()}g
-                    </div>
-                  </div>
-                ))}
-                {shopItems.length === 0 && (
-                  <div style={{ color:C.TD, fontSize:13, padding:"20px 0" }}>No items match this filter.</div>
-                )}
-              </div>
-            </div>
-          </div>
+          ) : (
+            <ChampionDetails 
+              champDetail={champDetail}
+              stats={stats}
+              level={level}
+              setLevel={setLevel}
+              hasMana={hasMana}
+              hasEnergy={hasEnergy}
+              setShowPicker={setShowPicker}
+              C={C}
+            />
+          )}
         </div>
-      </div>
 
-      {/* ══ Item Tooltip ════════════════════════════════════════════════════════ */}
-      {tooltip && ver && <ItemTooltip item={tooltip} pos={mpos} ver={ver} C={C} FMT={ITEM_STAT_FMT} format={formatDescription} shift={shiftPressed} />}
+        <div className={`panel build-panel ${(activeTab === 'build' || !activeTab) ? 'active' : ''}`}>
+          <Inventory 
+            equipped={equipped}
+            clearBuild={clearBuild}
+            onSlotDragStart={onSlotDragStart}
+            onSlotDragOver={onSlotDragOver}
+            onSlotDrop={onSlotDrop}
+            onDragEnd={onDragEnd}
+            removeItem={removeItem}
+            setTooltip={setTooltip}
+            setMpos={setMpos}
+            dragOverSlot={dragOverSlot}
+            ver={ver}
+            C={C}
+          />
+        </div>
+
+        <div className={`panel shop-panel ${(activeTab === 'shop' || !activeTab) ? 'active' : ''}`}>
+          <Shop 
+            shopSearch={shopSearch}
+            setShopSearch={setShopSearch}
+            shopCat={shopCat}
+            setShopCat={setShopCat}
+            shopItems={shopItems}
+            addItem={addItem}
+            onShopDragStart={onShopDragStart}
+            onDragEnd={onDragEnd}
+            setTooltip={setTooltip}
+            setMpos={setMpos}
+            ver={ver}
+            C={C}
+          />
+        </div>
+      </main>
+
+      {/* Mobile Navigation */}
+      {activeTab && (
+        <nav className="mobile-nav">
+          <button 
+            id="nav-stats"
+            className={activeTab === 'stats' ? 'active' : ''} 
+            onClick={() => setActiveTab('stats')}
+          >
+            STATS
+          </button>
+          <button 
+            id="nav-build"
+            className={activeTab === 'build' ? 'active' : ''} 
+            onClick={() => setActiveTab('build')}
+          >
+            BUILD
+          </button>
+          <button 
+            id="nav-shop"
+            className={activeTab === 'shop' ? 'active' : ''} 
+            onClick={() => setActiveTab('shop')}
+          >
+            SHOP
+          </button>
+        </nav>
+      )}
+
+      {tooltip && ver && (
+        <ItemTooltip 
+          item={tooltip} 
+          pos={mpos} 
+          ver={ver} 
+          C={C} 
+          FMT={ITEM_STAT_FMT} 
+          format={formatDescription} 
+          shift={shiftPressed} 
+        />
+      )}
     </div>
   );
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
+function Header({ ver, totalGold, champDetail, equipped, resetAll, C }) {
+  return (
+    <header className="app-header">
+      <div className="logo-group">
+        <div className="logo-text">⚔ THEORY FORGE</div>
+        <div className="logo-sub">League of Legends Build Simulator</div>
+      </div>
+      {ver && (
+        <div className="header-actions">
+          {champDetail && equipped.some(Boolean) && (
+            <span className="gold-count">💰 {totalGold.toLocaleString()}g</span>
+          )}
+          <button className="action-btn reset-btn" onClick={resetAll}>Reset All</button>
+          <span className="patch-ver">Patch {ver}</span>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp, ver, C }) {
+  return (
+    <div className="champ-picker">
+      <div className="panel-title">Select Champion</div>
+      <input
+        value={champSearch}
+        onChange={e => setChampSearch(e.target.value)}
+        placeholder="Search champions…"
+        className="search-input"
+      />
+      <div className="champ-grid">
+        {filteredChamps.map(c => (
+          <div key={c.id} className="champ-icon" onClick={() => pickChamp(c)} title={c.name}>
+            <img src={`${DDR}/cdn/${ver}/img/champion/${c.image.full}`} alt={c.name} />
+          </div>
+        ))}
+        {filteredChamps.length === 0 && <div className="no-results">No champions found</div>}
+      </div>
+    </div>
+  );
+}
+
+function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEnergy, setShowPicker, C }) {
+  return (
+    <div className="champ-details">
+      <div className="champ-header-card">
+        <div className="champ-info">
+          <img src={`${DDR}/cdn/${champDetail.version}/img/champion/${champDetail.image.full}`} alt={champDetail.name} className="champ-avatar" />
+          <div className="champ-meta">
+            <div className="champ-name">{champDetail.name}</div>
+            <div className="champ-title">{champDetail.title}</div>
+            <div className="champ-tags">
+              {champDetail.tags?.map(t => <span key={t} className="tag">{t}</span>)}
+            </div>
+          </div>
+          <button onClick={() => setShowPicker(true)} className="change-btn">CHANGE</button>
+        </div>
+
+        <div className="level-control">
+          <span className="level-label">LEVEL</span>
+          <input
+            type="range" min={1} max={18} value={level}
+            onChange={e => setLevel(+e.target.value)}
+            style={{ background:`linear-gradient(to right,${C.G} ${((level-1)/17)*100}%,${C.BD} ${((level-1)/17)*100}%)` }}
+          />
+          <div className="level-badge">{level}</div>
+        </div>
+      </div>
+
+      <div className="stat-bars">
+        {stats && STATS.map(cfg => {
+          if (cfg.resource && !hasMana && !hasEnergy) return null;
+          const total = stats.total[cfg.k] ?? 0;
+          const base  = stats.base[cfg.k]  ?? 0;
+          const bonus = total - base;
+          if (cfg.itemOnly && bonus < 0.001) return null;
+
+          const barMax  = cfg.max;
+          const totalPct  = Math.min(total / barMax, 1) * 100;
+          const basePct   = total > 0 ? (base / total) * totalPct : 0;
+          const bonusPct  = totalPct - basePct;
+
+          return (
+            <div key={cfg.k} className={`stat-row ${cfg.sub ? 'sub' : ''}`}>
+              <div className="stat-label">{cfg.label}</div>
+              <div className="stat-bar-container">
+                <div className="stat-bar-fill" style={{ width:`${basePct}%`, background:cfg.color, opacity:0.75 }} />
+                <div className="stat-bar-bonus" style={{ width:`${bonusPct}%`, background:C.G }} />
+              </div>
+              <div className="stat-value">
+                <span className={bonus > 0.001 ? 'has-bonus' : ''}>{cfg.fmt(total)}</span>
+                {bonus > 0.001 && <span className="bonus-val">({cfg.fmtB(bonus)})</span>}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="gold-divider" />
+        <div className="champ-footer-chips">
+          <Chip label="Resource" val={champDetail.partype} C={C} />
+          <Chip label="Range"    val={champDetail.stats.attackrange} C={C} />
+          <Chip label="Movespeed" val={champDetail.stats.movespeed} C={C} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setMpos, dragOverSlot, ver, C }) {
+  return (
+    <div className="inventory-panel">
+      <div className="panel-title flex-between">
+        <div>
+          Item Build
+          <span className="subtitle">Drag from shop · click to remove</span>
+        </div>
+        {equipped.some(Boolean) && <button className="action-btn" onClick={clearBuild}>Clear Build</button>}
+      </div>
+
+      <div className="inventory-grid">
+        {equipped.map((item, idx) => (
+          <div
+            key={idx}
+            className={`slot-box ${dragOverSlot === idx ? 'drag-over' : ''} ${item ? 'has-item' : ''}`}
+            draggable={!!item}
+            onDragStart={e => onSlotDragStart(e, idx)}
+            onDragOver={e => onSlotDragOver(e, idx)}
+            onDrop={e => onSlotDrop(e, idx)}
+            onDragLeave={() => {}}
+            onDragEnd={onDragEnd}
+            onClick={() => item && removeItem(idx)}
+            onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }) : undefined}
+            onMouseLeave={() => setTooltip(null)}
+          >
+            {item ? (
+              <>
+                <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} className="item-img" />
+                <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
+                <div className="slot-rm">✕</div>
+              </>
+            ) : (
+              <div className="empty-slot">＋</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addItem, onShopDragStart, onDragEnd, setTooltip, setMpos, ver, C }) {
+  return (
+    <div className="shop-content">
+      <div className="panel-title">Shop</div>
+      <input
+        value={shopSearch}
+        onChange={e => setShopSearch(e.target.value)}
+        placeholder="Search items…"
+        className="search-input"
+      />
+
+      <div className="shop-cats">
+        {SHOP_CATS.map(cat => (
+          <button
+            key={cat.id}
+            className={`cat-btn ${shopCat === cat.id ? 'active' : ''}`}
+            onClick={() => setShopCat(cat.id)}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="shop-grid">
+        {shopItems.map(item => (
+          <div
+            key={item.itemId}
+            className="item-cell"
+            draggable
+            onDragStart={e => onShopDragStart(e, item)}
+            onDragEnd={onDragEnd}
+            onClick={() => addItem(item)}
+            onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }}
+            onMouseLeave={() => setTooltip(null)}
+            onMouseMove={e => setMpos({ x:e.clientX, y:e.clientY })}
+          >
+            <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} />
+            <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
+          </div>
+        ))}
+        {shopItems.length === 0 && <div className="no-results">No items match this filter.</div>}
+      </div>
+    </div>
+  );
+}
+
 function Chip({ label, val, C }) {
   return (
-    <div style={{ display:"flex", gap:5, fontSize:11 }}>
-      <span style={{ color:C.TD }}>{label}:</span>
-      <span style={{ color:C.T }}>{val}</span>
+    <div className="info-chip">
+      <span className="chip-label">{label}:</span>
+      <span className="chip-val">{val}</span>
     </div>
   );
 }
 
 function ItemTooltip({ item, pos, ver, C, FMT, format, shift }) {
-  const WIN_W = typeof window !== "undefined" ? window.innerWidth : 1200;
-  const WIN_H = typeof window !== "undefined" ? window.innerHeight : 800;
-  const TW = 280, TH_EST = 400;
-  const left = pos.x + 14 + TW > WIN_W ? pos.x - TW - 8 : pos.x + 14;
-  const top  = pos.y - 10 + TH_EST > WIN_H ? WIN_H - TH_EST - 10 : Math.max(10, pos.y - 10);
+  const TW = 280;
+  const left = typeof window !== 'undefined' && pos.x + 14 + TW > window.innerWidth ? pos.x - TW - 8 : pos.x + 14;
+  const top  = Math.max(10, pos.y - 10);
 
   const itemStats = item.stats ? Object.entries(item.stats).filter(([k]) => FMT[k]) : [];
   const descHtml = format(item.description || "");
 
   return (
-    <div style={{
-      position:"fixed", left, top, width:TW,
-      background:"#0A1824", border:`1px solid ${C.G}`,
-      borderRadius:4, padding:"12px", zIndex:9999,
-      pointerEvents:"none", boxShadow:"0 6px 30px rgba(0,0,0,.9)",
-    }}>
-      {/* Header */}
-      <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:8, paddingBottom:8, borderBottom:`1px solid ${C.GX}` }}>
-        <img
-          src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`}
-          alt={item.name}
-          style={{ width:42, height:42, border:`2px solid ${C.G}`, borderRadius:2, flexShrink:0 }}
-        />
-        <div>
-          <div style={{ fontFamily:`'Cinzel',Georgia,serif`, color:C.G, fontSize:13, lineHeight:1.2, fontWeight:600 }}>{item.name}</div>
+    <div className="tooltip-container" style={{ left, top }}>
+      <div className="tooltip-header">
+        <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} className="tooltip-img" />
+        <div className="tooltip-meta">
+          <div className="tooltip-name">{item.name}</div>
           {item.gold && (
-            <div style={{ marginTop:4, display:"flex", gap:8, alignItems:"center" }}>
-              <span style={{ color:C.G, fontSize:12 }}>💰 {item.gold.total?.toLocaleString()}g</span>
-              {shift && item.gold.sell > 0 && <span style={{ color:C.TD, fontSize:10 }}>→ sell {item.gold.sell}g</span>}
+            <div className="tooltip-gold">
+              <span className="gold-text">💰 {item.gold.total?.toLocaleString()}g</span>
+              {shift && item.gold.sell > 0 && <span className="sell-text">→ sell {item.gold.sell}g</span>}
             </div>
           )}
         </div>
       </div>
 
-      {/* Stats */}
       {itemStats.length > 0 && (
-        <div style={{ marginBottom:8, paddingBottom:8, borderBottom:`1px solid ${C.GX}` }}>
+        <div className="tooltip-stats">
           {itemStats.map(([key, val]) => {
             const [label, fval] = FMT[key](val);
             return (
-              <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:12, marginBottom:3 }}>
-                <span style={{ color:C.T }}>{label}</span>
-                <span style={{ color:"#A8FF78", fontWeight:600 }}>{fval}</span>
+              <div key={key} className="tooltip-stat-row">
+                <span className="stat-name">{label}</span>
+                <span className="stat-val">{fval}</span>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Description */}
       {descHtml && (
         <div 
-          className={shift ? "show-extended" : ""}
-          style={{ color:C.TD, fontSize:11, lineHeight:1.55, maxHeight:shift ? 450 : 220, overflowY:"auto", paddingRight:4 }}
+          className={`tooltip-desc ${shift ? "show-extended" : ""}`}
           dangerouslySetInnerHTML={{ __html: descHtml }}
         />
       )}
 
-      {/* Tags (Extended only) */}
-      {shift && item.tags?.length > 0 && (
-        <div style={{ marginTop:12, paddingTop:8, borderTop:`1px solid ${C.GX}`, display:"flex", gap:4, flexWrap:"wrap" }}>
-          {item.tags.map(t => (
-            <span key={t} style={{ background:C.BD, border:`1px solid ${C.B}`, color:C.TD, fontSize:9, padding:"2px 5px", borderRadius:2 }}>{t}</span>
-          ))}
-        </div>
-      )}
-
-      {!shift && (
-        <div className="shift-hint">HOLD [SHIFT] FOR DETAILS</div>
-      )}
+      {!shift && <div className="shift-hint">HOLD [SHIFT] FOR DETAILS</div>}
     </div>
   );
 }
