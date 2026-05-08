@@ -8,12 +8,33 @@ const growStat = (base, growth, lvl) => {
   return base + growth * n * (0.7025 + 0.0175 * n);
 };
 
-const stripTags = (html = "") =>
-  html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ")
-    .replace(/\n{3,}/g, "\n\n").trim();
+const formatDescription = (html = "") => {
+  if (!html) return "";
+  let res = html;
+
+  // 1. Process <stats> block into bullet points
+  res = res.replace(/<stats>(.*?)<\/stats>/gs, (match, p1) => {
+    const lines = p1.split(/<br\s*\/?>/gi).map(l => l.trim()).filter(Boolean);
+    return `<div class="d-stats">${lines.map(l => `<div class="stat-line"><span class="bullet">•</span> ${l}</div>`).join('')}</div>`;
+  });
+
+  // 2. Format <attention> tags (usually numbers) to be bold/bright
+  res = res.replace(/<attention>(.*?)<\/attention>/gi, '<span class="d-attn">$1</span>');
+
+  // 3. Format subheadings (<passive>, <active>, <status>) to be bold and on new lines
+  res = res.replace(/<(passive|active|status)>(.*?)<\/\1>/gi, '<div class="d-header">$2</div>');
+
+  // 4. Handle other Riot-specific tags (like <flavorText>, <mainText>, damage types)
+  // We'll keep their content but convert them to something harmless or remove the tag
+  res = res.replace(/<(flavorText|mainText|rule)>(.*?)<\/\1>/gs, '<div class="d-block">$2</div>');
+  res = res.replace(/<(physicalDamage|magicDamage|trueDamage|healing|shield|speed|attackSpeed|lifesteal|keywordStealth|status|recharge)>(.*?)<\/\1>/gi, '<span class="d-attn">$2</span>');
+
+  // 5. Final cleanup: handle remaining <br>, strip unknown tags, and fix whitespace
+  res = res.replace(/<br\s*\/?>/gi, "<br/>");
+  res = res.replace(/<(?!br|div|span|\/div|\/span)(.*?)>/gi, "");
+
+  return res.trim();
+};
 
 const STATS = [
   { k: "hp",         label: "Health",         color: "#22C55E", max: 5500, fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}` },
@@ -321,6 +342,14 @@ export default function App() {
         .action-btn:hover{border-color:${C.G};color:${C.G};background:rgba(200,155,60,.1);}
         .reset-btn{border-color:rgba(180,20,20,.4);color:rgba(180,20,20,.8);}
         .reset-btn:hover{border-color:#EF4444;color:#EF4444;background:rgba(239,68,68,.1);}
+
+        /* Tooltip formatting */
+        .d-stats { margin-bottom: 10px; color: #A8FF78; }
+        .stat-line { display: flex; gap: 6px; margin-bottom: 2px; }
+        .bullet { color: ${C.G}; font-weight: bold; }
+        .d-attn { color: #fff; font-weight: 700; }
+        .d-header { color: ${C.G}; font-weight: 700; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+        .d-block { margin-bottom: 8px; }
       `}</style>
 
       {/* ══ Header ══════════════════════════════════════════════════════════════ */}
@@ -614,7 +643,7 @@ export default function App() {
       </div>
 
       {/* ══ Item Tooltip ════════════════════════════════════════════════════════ */}
-      {tooltip && ver && <ItemTooltip item={tooltip} pos={mpos} ver={ver} C={C} FMT={ITEM_STAT_FMT} strip={stripTags} />}
+      {tooltip && ver && <ItemTooltip item={tooltip} pos={mpos} ver={ver} C={C} FMT={ITEM_STAT_FMT} format={formatDescription} />}
     </div>
   );
 }
@@ -630,7 +659,7 @@ function Chip({ label, val, C }) {
   );
 }
 
-function ItemTooltip({ item, pos, ver, C, FMT, strip }) {
+function ItemTooltip({ item, pos, ver, C, FMT, format }) {
   const WIN_W = typeof window !== "undefined" ? window.innerWidth : 1200;
   const WIN_H = typeof window !== "undefined" ? window.innerHeight : 800;
   const TW = 270, TH_EST = 380;
@@ -638,7 +667,7 @@ function ItemTooltip({ item, pos, ver, C, FMT, strip }) {
   const top  = pos.y - 10 + TH_EST > WIN_H ? WIN_H - TH_EST - 10 : Math.max(10, pos.y - 10);
 
   const itemStats = item.stats ? Object.entries(item.stats).filter(([k]) => FMT[k]) : [];
-  const desc = strip(item.description || "");
+  const descHtml = format(item.description || "");
 
   return (
     <div style={{
@@ -681,10 +710,11 @@ function ItemTooltip({ item, pos, ver, C, FMT, strip }) {
       )}
 
       {/* Description */}
-      {desc && (
-        <div style={{ color:C.TD, fontSize:11, lineHeight:1.55, maxHeight:140, overflowY:"hidden" }}>
-          {desc.length > 320 ? desc.substring(0, 320) + "…" : desc}
-        </div>
+      {descHtml && (
+        <div 
+          style={{ color:C.TD, fontSize:11, lineHeight:1.55, maxHeight:300, overflowY:"auto", paddingRight:4 }}
+          dangerouslySetInnerHTML={{ __html: descHtml }}
+        />
       )}
 
       {/* Tags */}
