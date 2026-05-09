@@ -234,7 +234,7 @@ export default function App() {
 
   // ── Shop Items ──────────────────────────────────────────────────────────────
   const shopItems = useMemo(() => {
-    return Object.entries(allItems)
+    const filtered = Object.entries(allItems)
       .filter(([id, item]) => {
         if (!item.gold?.purchasable || !item.maps?.["11"]) return false;
         if (!item.gold.total) return false;
@@ -243,8 +243,19 @@ export default function App() {
         if (shopCat !== "all" && !(item.tags || []).includes(shopCat)) return false;
         return true;
       })
-      .map(([id, item]) => ({ ...item, itemId: id }))
-      .sort((a, b) => (a.gold?.total || 0) - (b.gold?.total || 0));
+      .map(([id, item]) => ({ ...item, itemId: id }));
+
+    // Deduplicate by name - some items have duplicate entries in Data Dragon
+    const unique = [];
+    const seen = new Set();
+    for (const item of filtered) {
+      if (!seen.has(item.name)) {
+        seen.add(item.name);
+        unique.push(item);
+      }
+    }
+
+    return unique.sort((a, b) => (a.gold?.total || 0) - (b.gold?.total || 0));
   }, [allItems, shopSearch, shopCat]);
 
   // ── Slot Actions ─────────────────────────────────────────────────────────────
@@ -469,6 +480,28 @@ export default function App() {
           <button id="nav-shop" className={activeTab === 'shop' ? 'active' : ''} onClick={() => setActiveTab('shop')}>SHOP</button>
         </nav>
       )}
+
+      {/* Saved Builds Floating Bar */}
+      <div className="floating-builds-bar">
+        {savedBuilds.map((b, i) => (
+          <div 
+            key={i} 
+            className={`mini-build-slot ${b ? 'active' : ''}`} 
+            onClick={() => b ? loadFromSlot(i) : saveToSlot(i)}
+            title={b ? `Load: ${b.champName}` : "Save current build"}
+          >
+            {b ? (
+              <>
+                <img src={`${DDR}/cdn/${ver}/img/champion/${b.champId}.png`} alt={b.champId} className="mini-slot-img" />
+                <div className="mini-slot-rm" onClick={(e) => { e.stopPropagation(); setConfirmDelete(i); }}>✕</div>
+              </>
+            ) : (
+              <div className="mini-slot-empty">＋</div>
+            )}
+          </div>
+        ))}
+      </div>
+
       {tooltip && ver && (
         <ItemTooltip 
           item={tooltip} 
@@ -622,26 +655,6 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
           <Chip label="Movespeed" val={champDetail.stats.movespeed} />
         </div>
       </div>
-
-      {/* Ticket #5: Saved Builds Section */}
-      <div className="saved-builds-section">
-        <div className="panel-title">Saved Builds</div>
-        <div className="build-slots-grid">
-          {savedBuilds.map((b, i) => (
-            <div key={i} className={`build-slot ${b ? 'active' : ''} ${i === 5 ? 'special-slot' : ''}`} onClick={() => b && loadFromSlot(i)}>
-              <div className="slot-id">{i + 1}</div>
-              {b ? (
-                <>
-                  <img src={`${DDR}/cdn/${ver}/img/champion/${b.champId}.png`} alt={b.champId} className="slot-champ-img" />
-                  <div className="slot-rm-btn" onClick={(e) => { e.stopPropagation(); setConfirmDelete(i); }}>✕</div>
-                </>
-              ) : (
-                <div className="slot-empty">...</div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -649,14 +662,17 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
 function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setMpos, dragOverSlot, ver, champDetail, setShowSaveModal }) {
   return (
     <div className="inventory-panel">
-      <div className="panel-title flex-between">
-        <div>
-          Item Build
-          <span className="subtitle">Drag from shop · click to remove</span>
+      <div className="panel-title inventory-header">
+        <div className="title-group">
+          <div className="main-title">Item Build</div>
+          <div className="subtitle">Drag from shop · click to remove</div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {champDetail && <button className="action-btn" onClick={() => setShowSaveModal(true)}>Save Build</button>}
-          {equipped.some(Boolean) && <button className="action-btn" onClick={clearBuild}>Clear Build</button>}
+        <div className="header-actions">
+          {equipped.some(Boolean) && (
+            <button className="trash-btn" onClick={clearBuild} title="Clear Build">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
+          )}
         </div>
       </div>
 
