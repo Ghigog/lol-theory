@@ -215,7 +215,7 @@ As a player, I'd like the item shop to group items by their appropriate tier (Ba
 ---
 
 ## Ticket #9: Mobile Scroll Fix & Responsiveness Audit
-*Status: Open*
+*Status: Completed*
 ### User Story
 As a mobile user, I'd like to be able to scroll vertically and access all features (like saving builds) so that I can view and interact with all application features without getting stuck.
 

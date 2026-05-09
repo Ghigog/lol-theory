@@ -40,6 +40,13 @@
     font-size: 14px;
     --pad: 1rem;
   }
+  body {
+    overflow: auto;
+  }
+  #root {
+    height: auto;
+    min-height: 100svh;
+  }
 }
 
 * {
