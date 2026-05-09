@@ -115,10 +115,10 @@ As a community member, I'd like to share my builds via a URL so that I can show 
 As a builder, I'd like to save my builds into dedicated slots and recover them later so that I can quickly switch between different experimental setups for the same or different champions.
 
 - **Context**: Experimenting with builds takes time; users need a way to "bookmark" a specific configuration without relying on URL sharing alone.
-- **Description**: Implement a local storage-based build management system with 5 available slots.
+- **Description**: Implement a local storage-based build management system with 6 available slots.
 - **Requirements**:
     - **Persistence**: Use `localStorage` to persist builds across sessions.
-    - **Slot Management**: Limit to 5 max slots per user.
+    - **Slot Management**: Limit to 6 max slots per user.
     - **UI Integration**: Display saved builds in the champion detail panel after a hero is selected.
     - **Save Workflow**: A "Save" button that triggers a modal or dropdown with options: "Save as New", "Overwrite Current", or "Cancel".
     - **Deletion**: Include an 'x' button next to each slot with a confirmation modal to prevent accidental deletion.

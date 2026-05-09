@@ -357,6 +357,37 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
 }
 .build-slot:hover .slot-rm-btn { display: flex; }
 
+/* ── Special 6th Slot ── */
+.special-slot {
+  border: 1px solid #00F9FF !important; /* Cyan glow */
+  box-shadow: 0 0 10px rgba(0, 249, 255, 0.2);
+}
+.special-slot.active {
+  box-shadow: 0 0 15px rgba(0, 249, 255, 0.4);
+}
+.special-slot .slot-id {
+  background: #00F9FF;
+  color: #010A13;
+  border-color: #00F9FF;
+}
+.special-slot-row {
+  border-left: 3px solid #00F9FF !important;
+}
+.special-slot-row:hover {
+  background: rgba(0, 249, 255, 0.05) !important;
+}
+
+/* ── Special 6th Item Slot ── */
+.special-item-slot {
+  border-color: rgba(200, 155, 60, 0.4) !important; /* Subtle gold */
+}
+.special-item-slot:hover {
+  border-color: var(--c-gold) !important;
+}
+.special-item-slot.has-item {
+  border-color: var(--c-gold-dark) !important;
+}
+
 /* ── Modals ── */
 .modal-overlay {
   position: fixed;

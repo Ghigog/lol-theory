@@ -115,7 +115,9 @@ export default function App() {
   // ── Saved Builds (Ticket #5) ───────────────────────────────────────────────
   const [savedBuilds,   setSavedBuilds] = useState(() => {
     const saved = localStorage.getItem("tf_builds");
-    return saved ? JSON.parse(saved) : Array(5).fill(null);
+    const data = saved ? JSON.parse(saved) : [];
+    // Ensure always 6 slots
+    return Array.from({ length: 6 }, (_, i) => data[i] || null);
   });
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // index of slot to delete
@@ -513,7 +515,7 @@ export default function App() {
           <div className="save-modal-list">
             <p className="modal-hint">Select a slot to save your current build.</p>
             {savedBuilds.map((b, i) => (
-              <div key={i} className={`save-slot-row ${b ? 'occupied' : ''}`} onClick={() => saveToSlot(i)}>
+              <div key={i} className={`save-slot-row ${b ? 'occupied' : ''} ${i === 5 ? 'special-slot-row' : ''}`} onClick={() => saveToSlot(i)}>
                 <span className="slot-num">{i + 1}</span>
                 <span className="slot-info">
                   {b ? `${b.champName} (Lvl ${b.level})` : 'EMPTY SLOT'}
@@ -652,7 +654,7 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
         <div className="panel-title">Saved Builds</div>
         <div className="build-slots-grid">
           {savedBuilds.map((b, i) => (
-            <div key={i} className={`build-slot ${b ? 'active' : ''}`} onClick={() => b && loadFromSlot(i)}>
+            <div key={i} className={`build-slot ${b ? 'active' : ''} ${i === 5 ? 'special-slot' : ''}`} onClick={() => b && loadFromSlot(i)}>
               <div className="slot-id">{i + 1}</div>
               {b ? (
                 <>
@@ -688,7 +690,7 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
         {equipped.map((item, idx) => (
           <div
             key={idx}
-            className={`slot-box ${dragOverSlot === idx ? 'drag-over' : ''} ${item ? 'has-item' : ''}`}
+            className={`slot-box ${dragOverSlot === idx ? 'drag-over' : ''} ${item ? 'has-item' : ''} ${idx === 5 ? 'special-item-slot' : ''}`}
             draggable={!!item}
             onDragStart={e => onSlotDragStart(e, idx)}
             onDragOver={e => onSlotDragOver(e, idx)}
