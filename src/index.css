@@ -40,14 +40,9 @@
     font-size: 14px;
     --pad: 1rem;
   }
-  body {
-    overflow: auto;
-  }
-  #root {
-    height: auto;
-    min-height: 100svh;
-  }
 }
+
+
 
 * {
   box-sizing: border-box;
@@ -119,4 +114,6 @@ button, input {
 
 .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
 .animate-slide { animation: slideUp 0.3s ease-out forwards; }
+
+
 

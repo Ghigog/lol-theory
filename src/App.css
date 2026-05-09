@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap');
 
 /* ── Layout Overhaul ── */
-.desktop-view {
+.desktop-view, .mobile-view {
   display: flex;
   flex-direction: column;
   height: 100svh;
@@ -738,16 +738,9 @@ input[type=range]::-webkit-slider-thumb {
   .header-actions { gap: 0.75rem; }
   .patch-ver { display: none; }
 
-  .app-container.mobile-view {
-    height: auto;
-    min-height: 100svh;
-    overflow: visible;
-  }
-
   .main-content {
     flex-direction: column;
     padding-bottom: var(--nav-h);
-    overflow: visible;
   }
 
   .panel {
@@ -756,8 +749,6 @@ input[type=range]::-webkit-slider-thumb {
     flex: 1;
     display: none;
     border-radius: 0;
-    overflow: visible;
-    height: auto;
   }
 
   .panel.active {
@@ -770,16 +761,7 @@ input[type=range]::-webkit-slider-thumb {
   }
 
   .panel-group {
-    height: auto;
-    overflow: visible;
-  }
-
-  .champ-details, .champ-picker {
-    overflow: visible;
-  }
-
-  .stat-bars, .champ-grid, .shop-scroll-area {
-    overflow: visible;
+    height: 100%;
   }
 
   .mobile-save-build-container {
