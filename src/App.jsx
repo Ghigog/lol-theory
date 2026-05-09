@@ -364,52 +364,36 @@ export default function App() {
     .filter(c => c.name.toLowerCase().includes(champSearch.toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // ── Palette ──────────────────────────────────────────────────────────────────
-  const C = {
-    G:  "#C89B3C",   // gold
-    GL: "#F0E6D2",   // gold light / main text
-    GD: "#785A28",   // gold dark
-    GX: "#463714",   // gold border dim
-    BG: "#010A13",   // page background
-    P:  "#0D1F2E",   // panel bg
-    P2: "#091624",   // panel darker
-    B:  "#1E3A5F",   // blue border
-    BD: "#0A1628",   // dark input bg
-    T:  "#C8AA6E",   // secondary text (warm)
-    TD: "#8A96AB",   // dim text (lightened for better readability)
-    FF: `'Rajdhani','Segoe UI',sans-serif`,
-    FFT:`'Cinzel',Georgia,serif`,
-  };
 
   // ── Loading / Error ──────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:C.BG, color:C.G, fontFamily:C.FFT }}>
-        <div style={{ textAlign:"center" }}>
-          <div style={{ fontSize:52, marginBottom:16, letterSpacing:4 }}>⚔</div>
-          <div style={{ fontSize:17, letterSpacing:5 }}>LOADING</div>
-          <div style={{ marginTop:8, color:C.TD, fontSize:12, fontFamily:C.FF, letterSpacing:2 }}>Fetching from Riot Data Dragon…</div>
-        </div>
-      </div>
-    );
-  }
-  if (loadErr) {
-    return (
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:C.BG, color:"#EF4444", fontFamily:C.FF, padding:20 }}>
-        <div>
-          <div style={{ fontFamily:C.FFT, marginBottom:8 }}>Failed to load data</div>
-          <div style={{ fontSize:12, opacity:0.7 }}>{loadErr}</div>
+      <div className="loading-screen">
+        <div className="loading-content animate-fade">
+          <div className="loading-icon">⚔</div>
+          <div className="loading-text">FORGING ASSETS</div>
+          <div className="loading-sub">Fetching Riot Data Dragon…</div>
         </div>
       </div>
     );
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  if (loadErr) {
+    return (
+      <div className="error-screen">
+        <div className="error-content animate-slide">
+          <div className="error-title">CONNECTION FAILED</div>
+          <div className="error-msg">{loadErr}</div>
+          <button className="action-btn" onClick={() => window.location.reload()}>RETRY</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      style={{ display:"flex", flexDirection:"column", height:"100svh", background:C.BG, fontFamily:C.FF, color:C.GL, overflow:"hidden" }}
+      className={`app-container ${activeTab ? "mobile-view" : "desktop-view"}`}
       onMouseMove={e => tooltip && !shiftPressed && setMpos({ x: e.clientX, y: e.clientY })}
-      className={activeTab ? "mobile-view" : "desktop-view"}
     >
       <Header 
         ver={ver} 
@@ -417,7 +401,6 @@ export default function App() {
         champDetail={champDetail} 
         equipped={equipped} 
         resetAll={resetAll} 
-        C={C} 
       />
 
       <main className="main-content">
@@ -509,17 +492,21 @@ export default function App() {
         />
       )}
 
-      {/* Ticket #5 Modals */}
       {showSaveModal && (
-        <Modal title="Save Build" onClose={() => setShowSaveModal(false)} C={C}>
+        <Modal title="Save Build" onClose={() => setShowSaveModal(false)}>
           <div className="save-modal-list">
             <p className="modal-hint">Select a slot to save your current build.</p>
             {savedBuilds.map((b, i) => (
               <div key={i} className={`save-slot-row ${b ? 'occupied' : ''} ${i === 5 ? 'special-slot-row' : ''}`} onClick={() => saveToSlot(i)}>
                 <span className="slot-num">{i + 1}</span>
-                <span className="slot-info">
-                  {b ? `${b.champName} (Lvl ${b.level})` : 'EMPTY SLOT'}
-                </span>
+                <div className="slot-info">
+                  {b ? (
+                    <>
+                      <div className="slot-name">{b.champName}</div>
+                      <div className="slot-meta">Level {b.level} • {new Date(b.timestamp).toLocaleDateString()}</div>
+                    </>
+                  ) : 'EMPTY SLOT'}
+                </div>
                 <span className="slot-action">{b ? 'OVERWRITE' : 'SAVE'}</span>
               </div>
             ))}
@@ -528,7 +515,7 @@ export default function App() {
       )}
 
       {confirmDelete !== null && (
-        <Modal title="Confirm Deletion" onClose={() => setConfirmDelete(null)} C={C}>
+        <Modal title="Confirm Deletion" onClose={() => setConfirmDelete(null)}>
           <div className="delete-confirm">
             <p>Are you sure you want to delete the build in Slot {confirmDelete + 1}?</p>
             <div className="modal-actions">
@@ -544,7 +531,7 @@ export default function App() {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function Header({ ver, totalGold, champDetail, equipped, resetAll, C }) {
+function Header({ ver, totalGold, champDetail, equipped, resetAll }) {
   return (
     <header className="app-header">
       <div className="logo-group">
@@ -564,7 +551,7 @@ function Header({ ver, totalGold, champDetail, equipped, resetAll, C }) {
   );
 }
 
-function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp, ver, C }) {
+function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp, ver }) {
   return (
     <div className="champ-picker">
       <div className="panel-title">Select Champion</div>
@@ -586,7 +573,7 @@ function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp
   );
 }
 
-function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEnergy, setShowPicker, ver, C, savedBuilds, loadFromSlot, setConfirmDelete }) {
+function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEnergy, setShowPicker, ver, savedBuilds, loadFromSlot, setConfirmDelete }) {
   return (
     <div className="champ-details">
       <div className="champ-header-card">
@@ -607,7 +594,6 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
           <input
             type="range" min={1} max={18} value={level}
             onChange={e => setLevel(+e.target.value)}
-            style={{ background:`linear-gradient(to right,${C.G} ${((level-1)/17)*100}%,${C.BD} ${((level-1)/17)*100}%)` }}
           />
           <div className="level-badge">{level}</div>
         </div>
@@ -643,9 +629,9 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
 
         <div className="gold-divider" />
         <div className="champ-footer-chips">
-          <Chip label="Resource" val={champDetail.partype} C={C} />
-          <Chip label="Range"    val={champDetail.stats.attackrange} C={C} />
-          <Chip label="Movespeed" val={champDetail.stats.movespeed} C={C} />
+          <Chip label="Resource" val={champDetail.partype} />
+          <Chip label="Range"    val={champDetail.stats.attackrange} />
+          <Chip label="Movespeed" val={champDetail.stats.movespeed} />
         </div>
       </div>
 
@@ -672,7 +658,7 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
   );
 }
 
-function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setMpos, dragOverSlot, ver, C, champDetail, setShowSaveModal }) {
+function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setMpos, dragOverSlot, ver, champDetail, setShowSaveModal }) {
   return (
     <div className="inventory-panel">
       <div className="panel-title flex-between">
@@ -717,7 +703,7 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
   );
 }
 
-function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addItem, onShopDragStart, onDragEnd, setTooltip, setMpos, ver, C }) {
+function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addItem, onShopDragStart, onDragEnd, setTooltip, setMpos, ver }) {
   return (
     <div className="shop-content">
       <div className="panel-title">Shop</div>
@@ -763,7 +749,7 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
   );
 }
 
-function Chip({ label, val, C }) {
+function Chip({ label, val }) {
   return (
     <div className="info-chip">
       <span className="chip-label">{label}:</span>
@@ -772,7 +758,7 @@ function Chip({ label, val, C }) {
   );
 }
 
-function ItemTooltip({ item, pos, ver, C, FMT, getStatLabel, format, shift }) {
+function ItemTooltip({ item, pos, ver, FMT, getStatLabel, format, shift }) {
   const [h, setH] = useState(0);
   const ref = useRef(null);
 
@@ -839,7 +825,7 @@ function ItemTooltip({ item, pos, ver, C, FMT, getStatLabel, format, shift }) {
   );
 }
 
-function Modal({ title, children, onClose, C }) {
+function Modal({ title, children, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>

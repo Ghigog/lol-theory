@@ -1,114 +1,115 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --header-h: 50px;
-  --mobile-nav-h: 60px;
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* ── Hextech Design System ── */
+  --c-gold: #C89B3C;
+  --c-gold-light: #F0E6D2;
+  --c-gold-dark: #785A28;
+  --c-gold-dim: rgba(200, 155, 60, 0.2);
+  --c-gold-glow: rgba(200, 155, 60, 0.4);
+  
+  --c-blue: #00F9FF;
+  --c-blue-dark: #1E3A5F;
+  --c-blue-glow: rgba(0, 249, 255, 0.3);
+  
+  --c-bg: #010A13;
+  --c-panel: #0D1F2E;
+  --c-panel-darker: #06121E;
+  --c-input-bg: #0A1628;
+  
+  --c-text-main: #F0E6D2;
+  --c-text-secondary: #C8AA6E;
+  --c-text-dim: #8A96AB;
+  --c-text-error: #EF4444;
+  
+  /* ── Spacing & Transitions ── */
+  --header-h: 60px;
+  --nav-h: 70px;
+  --pad: 1.25rem;
+  --radius: 4px;
+  --trans: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* ── Typography ── */
+  --ff-main: 'Rajdhani', system-ui, sans-serif;
+  --ff-title: 'Cinzel', serif;
+  
+  /* ── Responsive Font Sizes ── */
+  font-size: 16px;
+}
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+    --pad: 1rem;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --color-gold-dim: #463714;
-    --color-blue-border: #1E3A5F;
-    --color-input-bg: #0A1628;
-
-    /* Breakpoints */
-    --bp-mobile: 768px;
-    --bp-tablet: 1024px;
-
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text-main);
+  font-family: var(--ff-main);
+  line-height: 1.5;
+  overflow: hidden; /* App handles its own scrolling */
 }
 
 #root {
   width: 100%;
-  min-height: 100svh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* ── Typography Utilities ── */
+h1, h2, h3 {
+  font-family: var(--ff-title);
+  color: var(--c-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+button, input {
+  font-family: var(--ff-main);
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* ── Scrollbars ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--c-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--c-gold-dark);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-gold);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 5px var(--c-gold-glow); }
+  50% { box-shadow: 0 0 15px var(--c-gold-glow); }
+  100% { box-shadow: 0 0 5px var(--c-gold-glow); }
+}
+
+.animate-fade { animation: fadeIn 0.3s ease-out forwards; }
+.animate-slide { animation: slideUp 0.3s ease-out forwards; }
+
