@@ -30,12 +30,18 @@ const formatDescription = (desc) => {
 
   // 5. Main blocks
   res = res.replace(/<mainText>(.*?)<\/mainText>/gs, '<div class="d-block">$1</div>');
+  
   // 6. Final cleanup: normalize breaks and strip remaining tags but keep content
   res = res.replace(/<br\s*\/?>/gi, "<br/>");
   res = res.replace(/<.*?>/gs, (match) => {
     if (/<(div|span|br)/i.test(match) || /<\/(div|span)/i.test(match)) return match;
     return "";
   });
+
+  // 7. Cleanup extra breaks and empty elements
+  res = res.replace(/(<br\s*\/?>){2,}/gi, "<br/>"); // No double breaks
+  res = res.replace(/<div class="d-block">\s*<br\s*\/?>/gi, '<div class="d-block">'); // No leading break in blocks
+  
   return res.trim();
 };
 
@@ -109,7 +115,6 @@ export default function App() {
   const [dragging,      setDragging]    = useState(null);
   const [dragOverSlot,  setDragOverSlot]= useState(null);
   const [showPicker,    setShowPicker]  = useState(true);
-  const [shiftPressed,  setShiftPressed]= useState(false);
   const [activeTab,     setActiveTab]   = useState(null);
 
   // ── Saved Builds (Ticket #5) ───────────────────────────────────────────────
@@ -123,16 +128,6 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState(null); // index of slot to delete
 
   // ── Global Listeners ────────────────────────────────────────────────────────
-  useEffect(() => {
-    const down = (e) => { if (e.key === "Shift") setShiftPressed(true); };
-    const up   = (e) => { if (e.key === "Shift") setShiftPressed(false); };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => { 
-      window.removeEventListener("keydown", down); 
-      window.removeEventListener("keyup", up); 
-    };
-  }, []);
 
   useEffect(() => {
     const res = () => {
@@ -393,7 +388,7 @@ export default function App() {
   return (
     <div
       className={`app-container ${activeTab ? "mobile-view" : "desktop-view"}`}
-      onMouseMove={e => tooltip && !shiftPressed && setMpos({ x: e.clientX, y: e.clientY })}
+      onMouseMove={e => tooltip && setMpos({ x: e.clientX, y: e.clientY })}
     >
       <Header 
         ver={ver} 
@@ -475,17 +470,12 @@ export default function App() {
         </nav>
       )}
 
-      {tooltip && ver && (
-        <ItemTooltip 
-          item={tooltip} 
           pos={mpos} 
           ver={ver} 
           FMT={ITEM_STAT_FMT} 
           getStatLabel={getStatLabel}
           format={formatDescription} 
-          shift={shiftPressed} 
         />
-      )}
 
       {showSaveModal && (
         <Modal title="Save Build" onClose={() => setShowSaveModal(false)}>
@@ -679,8 +669,8 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
             onDragLeave={() => {}}
             onDragEnd={onDragEnd}
             onClick={() => item && removeItem(idx)}
-            onMouseEnter={item ? (e => { setTooltip(item); if (!shiftPressed) setMpos({ x:e.clientX, y:e.clientY }); }) : undefined}
-            onMouseLeave={() => !shiftPressed && setTooltip(null)}
+            onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }) : undefined}
+            onMouseLeave={() => setTooltip(null)}
           >
             {item ? (
               <>
@@ -730,9 +720,9 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
             onDragStart={e => onShopDragStart(e, item)}
             onDragEnd={onDragEnd}
             onClick={() => addItem(item)}
-            onMouseEnter={e => { setTooltip(item); if (!shiftPressed) setMpos({ x:e.clientX, y:e.clientY }); }}
-            onMouseLeave={() => !shiftPressed && setTooltip(null)}
-            onMouseMove={e => !shiftPressed && setMpos({ x:e.clientX, y:e.clientY })}
+            onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }}
+            onMouseLeave={() => setTooltip(null)}
+            onMouseMove={e => setMpos({ x:e.clientX, y:e.clientY })}
           >
             <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} />
             <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
@@ -753,13 +743,13 @@ function Chip({ label, val }) {
   );
 }
 
-function ItemTooltip({ item, pos, ver, FMT, getStatLabel, format, shift }) {
+function ItemTooltip({ item, pos, ver, FMT, getStatLabel, format }) {
   const [h, setH] = useState(0);
   const ref = useRef(null);
 
   useEffect(() => {
     if (ref.current) setH(ref.current.offsetHeight);
-  }, [item, shift]);
+  }, [item]);
 
   const TW = 280;
   const gap = 14;
@@ -778,8 +768,8 @@ function ItemTooltip({ item, pos, ver, FMT, getStatLabel, format, shift }) {
   return (
     <div 
       ref={ref}
-      className={`tooltip-container ${shift ? 'pinned' : ''}`} 
-      style={{ left, top, transition: shift ? "none" : "top 0.1s, left 0.1s" }}
+      className="tooltip-container animate-fade"
+      style={{ left, top }}
     >
       <div className="tooltip-header">
         <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} className="tooltip-img" />
@@ -787,8 +777,8 @@ function ItemTooltip({ item, pos, ver, FMT, getStatLabel, format, shift }) {
           <div className="tooltip-name">{item.name}</div>
           {item.gold && (
             <div className="tooltip-gold">
-              <span className="gold-text">💰 {item.gold.total?.toLocaleString()}g</span>
-              {shift && item.gold.sell > 0 && <span className="sell-text">→ sell {item.gold.sell}g</span>}
+               <span className="gold-text">💰 {item.gold.total?.toLocaleString()}g</span>
+              {item.gold.sell > 0 && <span className="sell-text">→ sell {item.gold.sell}g</span>}
             </div>
           )}
         </div>
@@ -815,7 +805,6 @@ function ItemTooltip({ item, pos, ver, FMT, getStatLabel, format, shift }) {
         />
       )}
 
-      <div className="shift-hint">{shift ? "[SHIFT] PINNED - SCROLL FOR DETAILS" : "HOLD [SHIFT] TO PIN & SEE FORMULAS"}</div>
     </div>
   );
 }
