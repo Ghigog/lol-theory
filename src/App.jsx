@@ -434,6 +434,29 @@ export default function App() {
               setConfirmDelete={setConfirmDelete}
             />
           )}
+          
+          <div className="saved-builds-section">
+            <div className="saved-builds-title">Saved Builds</div>
+            <div className="saved-builds-grid">
+              {savedBuilds.map((b, i) => (
+                <div 
+                  key={i} 
+                  className={`mini-build-slot ${b ? 'active' : ''}`} 
+                  onClick={() => b ? loadFromSlot(i) : saveToSlot(i)}
+                  title={b ? `Load: ${b.champName}` : "Save current build"}
+                >
+                  {b ? (
+                    <>
+                      <img src={`${DDR}/cdn/${ver}/img/champion/${b.champId}.png`} alt={b.champId} className="mini-slot-img" />
+                      <div className="mini-slot-rm" onClick={(e) => { e.stopPropagation(); setConfirmDelete(i); }}>✕</div>
+                    </>
+                  ) : (
+                    <div className="mini-slot-empty">＋</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className={`panel-group ${(activeTab === 'build' || activeTab === 'shop' || !activeTab) ? 'active' : ''}`}>
@@ -481,26 +504,6 @@ export default function App() {
         </nav>
       )}
 
-      {/* Saved Builds Floating Bar */}
-      <div className="floating-builds-bar">
-        {savedBuilds.map((b, i) => (
-          <div 
-            key={i} 
-            className={`mini-build-slot ${b ? 'active' : ''}`} 
-            onClick={() => b ? loadFromSlot(i) : saveToSlot(i)}
-            title={b ? `Load: ${b.champName}` : "Save current build"}
-          >
-            {b ? (
-              <>
-                <img src={`${DDR}/cdn/${ver}/img/champion/${b.champId}.png`} alt={b.champId} className="mini-slot-img" />
-                <div className="mini-slot-rm" onClick={(e) => { e.stopPropagation(); setConfirmDelete(i); }}>✕</div>
-              </>
-            ) : (
-              <div className="mini-slot-empty">＋</div>
-            )}
-          </div>
-        ))}
-      </div>
 
       {tooltip && ver && (
         <ItemTooltip 
