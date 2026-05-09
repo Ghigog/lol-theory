@@ -729,6 +729,42 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
 }
 
 function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addItem, onShopDragStart, onDragEnd, setTooltip, setMpos, ver }) {
+  const [collapsed, setCollapsed] = useState({});
+
+  const toggleGroup = (grp) => {
+    setCollapsed(prev => ({ ...prev, [grp]: !prev[grp] }));
+  };
+
+  const groupedItems = useMemo(() => {
+    const groups = {
+      "Basic": [],
+      "Epic": [],
+      "Legendary": [],
+      "Boots": [],
+      "Starter": [],
+      "Consumable": []
+    };
+
+    shopItems.forEach(item => {
+      let g = "Legendary";
+      if (item.tags?.includes("Consumable")) g = "Consumable";
+      else if (item.tags?.includes("Lane") || item.tags?.includes("Jungle")) g = "Starter";
+      else if (item.tags?.includes("Boots")) g = "Boots";
+      else {
+        const depth = item.depth || 1;
+        if (depth === 1) g = "Basic";
+        else if (depth === 2) g = "Epic";
+      }
+
+      if (groups[g]) groups[g].push(item);
+      else groups["Legendary"].push(item);
+    });
+
+    return groups;
+  }, [shopItems]);
+
+  const ORDER = ["Basic", "Epic", "Legendary", "Boots", "Starter", "Consumable"];
+
   return (
     <div className="shop-content">
       <div className="panel-title">Shop</div>
@@ -751,23 +787,44 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
         ))}
       </div>
 
-      <div className="shop-grid" onMouseLeave={() => setTooltip(null)}>
-        {shopItems.map(item => (
-          <div
-            key={item.itemId}
-            className="item-cell"
-            draggable
-            onDragStart={e => onShopDragStart(e, item)}
-            onDragEnd={onDragEnd}
-            onClick={() => addItem(item)}
-            onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }}
-            onMouseLeave={() => setTooltip(null)}
-            onMouseMove={e => setMpos({ x:e.clientX, y:e.clientY })}
-          >
-            <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} />
-            <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
-          </div>
-        ))}
+      <div className="shop-scroll-area" onMouseLeave={() => setTooltip(null)}>
+        {ORDER.map(grp => {
+          const items = groupedItems[grp];
+          if (!items || items.length === 0) return null;
+
+          return (
+            <div key={grp} className="shop-group">
+              <div className="shop-group-header" onClick={() => toggleGroup(grp)}>
+                <div className="shop-group-title">{grp}</div>
+                <div className={`shop-group-arrow ${collapsed[grp] ? 'collapsed' : ''}`}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </div>
+              {!collapsed[grp] && (
+                <div className="shop-grid">
+                  {items.map(item => (
+                    <div
+                      key={item.itemId}
+                      className="item-cell"
+                      draggable
+                      onDragStart={e => onShopDragStart(e, item)}
+                      onDragEnd={onDragEnd}
+                      onClick={() => addItem(item)}
+                      onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }}
+                      onMouseLeave={() => setTooltip(null)}
+                      onMouseMove={e => setMpos({ x:e.clientX, y:e.clientY })}
+                    >
+                      <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} />
+                      <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
         {shopItems.length === 0 && <div className="no-results">No items match this filter.</div>}
       </div>
     </div>

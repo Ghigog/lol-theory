@@ -186,3 +186,30 @@ As a mobile user, I'd like to access the build simulator on my phone so that I c
 
 - **Estimated complexity**: Medium-High
 - **Risk assessment**: Overhauling the core layout can easily break the "premium" aesthetics if not done carefully with media queries.
+
+---
+
+## Ticket #8: Item Shop Grouping & Filtering
+*Status: Open*
+### User Story
+As a player, I'd like the item shop to group items by their appropriate tier (Basic, Epic, Legendary, Boots, etc.) so that I can browse items in a structured way that matches the in-game experience.
+
+- **Context**: Currently, the shop items are just one big grid. Grouping them makes it easier to visually scan for components vs finished items.
+- **Description**: Categorize items based on their properties (`depth` or `tags`) into groups like Basic, Epic, Legendary, Boots, Starters, and Consumables. Add collapsible banners for each group.
+- **Requirements**:
+    - Deduce item tiers based on Data Dragon properties (e.g., `depth: 1` -> Basic, `depth: 2` -> Epic, `depth >= 3` -> Legendary).
+    - Implement grouped rendering in the `Shop` component.
+    - Add a header banner for each group with an expand/collapse toggle (dropdown arrow).
+    - Keep "Basics" at the top of the hierarchy or follow standard game flow (Starter/Basic -> Epic -> Legendary).
+
+### Acceptance criteria
+- **Given** I am browsing the shop
+- **When** I look at the item list
+- **Then** I should see items separated into distinct grouped sections like "Basic", "Epic", and "Legendary".
+- **When** I click the arrow on a group banner
+- **Then** the group should collapse or expand.
+
+- **Estimated complexity**: Low-Medium
+- **Risk assessment**: Minimal. UI grouping logic is self-contained.
+
+

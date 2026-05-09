@@ -584,9 +584,59 @@ input[type=range]::-webkit-slider-thumb {
   box-shadow: 0 0 10px var(--c-gold-glow);
 }
 
-.shop-grid {
+.shop-scroll-area {
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-right: 4px;
+}
+
+.shop-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--c-panel-darker);
+  border: 1px solid var(--c-gold-dim);
+  border-left: 3px solid var(--c-gold);
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  transition: var(--trans);
+}
+
+.shop-group-header:hover {
+  border-color: var(--c-gold);
+  background: rgba(200, 155, 60, 0.1);
+}
+
+.shop-group-title {
+  font-family: var(--ff-title);
+  color: var(--c-gold);
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.shop-group-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--c-text-dim);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shop-group-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.shop-group-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+
+.shop-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
   gap: 8px;
