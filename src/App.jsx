@@ -29,11 +29,13 @@ const formatDescription = (desc) => {
   res = res.replace(/<(flavorText|rule)>(.*?)<\/\1>/gs, '<div class="d-extended">$2</div>');
 
   // 5. Main blocks
-  res = res.replace(/<mainText>(.*?)<\/mainText>/gs, '<div class="d-block">$2</div>');
-
-  // 6. Generic tags cleanup but keep content
+  res = res.replace(/<mainText>(.*?)<\/mainText>/gs, '<div class="d-block">$1</div>');
+  // 6. Final cleanup: normalize breaks and strip remaining tags but keep content
   res = res.replace(/<br\s*\/?>/gi, "<br/>");
-  res = res.replace(/<(?!br|div|span|\/div|\/span)(.*?)>/gi, "");
+  res = res.replace(/<.*?>/gs, (match) => {
+    if (/<(div|span|br)/i.test(match) || /<\/(div|span)/i.test(match)) return match;
+    return "";
+  });
   return res.trim();
 };
 
@@ -661,7 +663,7 @@ function ItemTooltip({ item, pos, ver, C, FMT, getStatLabel, format, shift }) {
   const left = typeof window !== 'undefined' && pos.x + 14 + TW > window.innerWidth ? pos.x - TW - 8 : pos.x + 14;
   const top  = Math.max(10, pos.y - 10);
 
-  const itemStats = item.stats ? Object.entries(item.stats).filter(([k]) => FMT[k]) : [];
+  const itemStats = item.stats ? Object.entries(item.stats) : [];
   const descHtml = format(item.description || "");
 
   return (
