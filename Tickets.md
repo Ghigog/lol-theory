@@ -110,7 +110,7 @@ As a community member, I'd like to share my builds via a URL so that I can show 
 ---
 
 ## Ticket #5: Local Build Saving & Recovery
-*Status: Open*
+*Status: Completed*
 ### User Story
 As a builder, I'd like to save my builds into dedicated slots and recover them later so that I can quickly switch between different experimental setups for the same or different champions.
 

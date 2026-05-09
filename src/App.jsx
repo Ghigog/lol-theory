@@ -112,6 +112,14 @@ export default function App() {
   const [shiftPressed,  setShiftPressed]= useState(false);
   const [activeTab,     setActiveTab]   = useState(null);
 
+  // ── Saved Builds (Ticket #5) ───────────────────────────────────────────────
+  const [savedBuilds,   setSavedBuilds] = useState(() => {
+    const saved = localStorage.getItem("tf_builds");
+    return saved ? JSON.parse(saved) : Array(5).fill(null);
+  });
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // index of slot to delete
+
   // ── Global Listeners ────────────────────────────────────────────────────────
   useEffect(() => {
     const down = (e) => { if (e.key === "Shift") setShiftPressed(true); };
@@ -137,6 +145,10 @@ export default function App() {
     res();
     return () => window.removeEventListener("resize", res);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("tf_builds", JSON.stringify(savedBuilds));
+  }, [savedBuilds]);
 
   // ── Fetch Data ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -267,6 +279,48 @@ export default function App() {
     setShopCat("all");
   };
 
+  // ── Build Saving Logic (Ticket #5) ──────────────────────────────────────────
+  const saveToSlot = (idx) => {
+    if (!champDetail) return;
+    const newBuilds = [...savedBuilds];
+    newBuilds[idx] = {
+      champId: champDetail.id,
+      champName: champDetail.name,
+      level: level,
+      itemIds: equipped.map(i => i ? i.itemId : null),
+      timestamp: Date.now()
+    };
+    setSavedBuilds(newBuilds);
+    setShowSaveModal(false);
+  };
+
+  const loadFromSlot = async (idx) => {
+    const b = savedBuilds[idx];
+    if (!b) return;
+    
+    // 1. Pick Champ
+    const c = allChamps[b.champId];
+    if (c) {
+      const d = await fetch(`${DDR}/cdn/${ver}/data/en_US/champion/${c.id}.json`).then(r => r.json());
+      setChampDetail(d.data[c.id]);
+      setShowPicker(false);
+    }
+    
+    // 2. Set Stats
+    setLevel(b.level);
+    
+    // 3. Set Items
+    const items = b.itemIds.map(id => id ? { ...allItems[id], itemId: id } : null);
+    setEquipped(items);
+  };
+
+  const deleteSlot = (idx) => {
+    const next = [...savedBuilds];
+    next[idx] = null;
+    setSavedBuilds(next);
+    setConfirmDelete(null);
+  };
+
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
   const onShopDragStart = (e, item) => {
     setDragging({ item, src: "shop" });
@@ -386,6 +440,9 @@ export default function App() {
               setShowPicker={setShowPicker}
               ver={ver}
               C={C}
+              savedBuilds={savedBuilds}
+              loadFromSlot={loadFromSlot}
+              setConfirmDelete={setConfirmDelete}
             />
           )}
         </div>
@@ -405,6 +462,8 @@ export default function App() {
               dragOverSlot={dragOverSlot}
               ver={ver}
               C={C}
+              champDetail={champDetail}
+              setShowSaveModal={setShowSaveModal}
             />
           </div>
 
@@ -446,6 +505,36 @@ export default function App() {
           format={formatDescription} 
           shift={shiftPressed} 
         />
+      )}
+
+      {/* Ticket #5 Modals */}
+      {showSaveModal && (
+        <Modal title="Save Build" onClose={() => setShowSaveModal(false)} C={C}>
+          <div className="save-modal-list">
+            <p className="modal-hint">Select a slot to save your current build.</p>
+            {savedBuilds.map((b, i) => (
+              <div key={i} className={`save-slot-row ${b ? 'occupied' : ''}`} onClick={() => saveToSlot(i)}>
+                <span className="slot-num">{i + 1}</span>
+                <span className="slot-info">
+                  {b ? `${b.champName} (Lvl ${b.level})` : 'EMPTY SLOT'}
+                </span>
+                <span className="slot-action">{b ? 'OVERWRITE' : 'SAVE'}</span>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {confirmDelete !== null && (
+        <Modal title="Confirm Deletion" onClose={() => setConfirmDelete(null)} C={C}>
+          <div className="delete-confirm">
+            <p>Are you sure you want to delete the build in Slot {confirmDelete + 1}?</p>
+            <div className="modal-actions">
+              <button className="action-btn delete-btn" onClick={() => deleteSlot(confirmDelete)}>Delete</button>
+              <button className="action-btn" onClick={() => setConfirmDelete(null)}>Cancel</button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -495,7 +584,7 @@ function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp
   );
 }
 
-function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEnergy, setShowPicker, ver, C }) {
+function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEnergy, setShowPicker, ver, C, savedBuilds, loadFromSlot, setConfirmDelete }) {
   return (
     <div className="champ-details">
       <div className="champ-header-card">
@@ -557,11 +646,31 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
           <Chip label="Movespeed" val={champDetail.stats.movespeed} C={C} />
         </div>
       </div>
+
+      {/* Ticket #5: Saved Builds Section */}
+      <div className="saved-builds-section">
+        <div className="panel-title">Saved Builds</div>
+        <div className="build-slots-grid">
+          {savedBuilds.map((b, i) => (
+            <div key={i} className={`build-slot ${b ? 'active' : ''}`} onClick={() => b && loadFromSlot(i)}>
+              <div className="slot-id">{i + 1}</div>
+              {b ? (
+                <>
+                  <img src={`${DDR}/cdn/${ver}/img/champion/${b.champId}.png`} alt={b.champId} className="slot-champ-img" />
+                  <div className="slot-rm-btn" onClick={(e) => { e.stopPropagation(); setConfirmDelete(i); }}>✕</div>
+                </>
+              ) : (
+                <div className="slot-empty">...</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setMpos, dragOverSlot, ver, C }) {
+function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setMpos, dragOverSlot, ver, C, champDetail, setShowSaveModal }) {
   return (
     <div className="inventory-panel">
       <div className="panel-title flex-between">
@@ -569,7 +678,10 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
           Item Build
           <span className="subtitle">Drag from shop · click to remove</span>
         </div>
-        {equipped.some(Boolean) && <button className="action-btn" onClick={clearBuild}>Clear Build</button>}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {champDetail && <button className="action-btn" onClick={() => setShowSaveModal(true)}>Save Build</button>}
+          {equipped.some(Boolean) && <button className="action-btn" onClick={clearBuild}>Clear Build</button>}
+        </div>
       </div>
 
       <div className="inventory-grid">
@@ -721,6 +833,22 @@ function ItemTooltip({ item, pos, ver, C, FMT, getStatLabel, format, shift }) {
       )}
 
       {!shift && <div className="shift-hint">HOLD [SHIFT] FOR DETAILS</div>}
+    </div>
+  );
+}
+
+function Modal({ title, children, onClose, C }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title">{title}</div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
