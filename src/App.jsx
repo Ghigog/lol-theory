@@ -546,7 +546,7 @@ function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp
         placeholder="Search champions…"
         className="search-input"
       />
-      <div className="champ-grid">
+      <div className="champ-grid" onMouseLeave={() => setTooltip(null)}>
         {filteredChamps.map(c => (
           <div key={c.id} className="champ-icon" onClick={() => pickChamp(c)} title={c.name}>
             <img src={`${DDR}/cdn/${ver}/img/champion/${c.image.full}`} alt={c.name} />
@@ -657,7 +657,7 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
         </div>
       </div>
 
-      <div className="inventory-grid">
+      <div className="inventory-grid" onMouseLeave={() => setTooltip(null)}>
         {equipped.map((item, idx) => (
           <div
             key={idx}
@@ -711,7 +711,7 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
         ))}
       </div>
 
-      <div className="shop-grid">
+      <div className="shop-grid" onMouseLeave={() => setTooltip(null)}>
         {shopItems.map(item => (
           <div
             key={item.itemId}
