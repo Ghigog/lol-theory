@@ -412,7 +412,6 @@ export default function App() {
               filteredChamps={filteredChamps}
               pickChamp={pickChamp}
               ver={ver}
-              C={C}
             />
           ) : (
             <ChampionDetails 
@@ -424,7 +423,6 @@ export default function App() {
               hasEnergy={hasEnergy}
               setShowPicker={setShowPicker}
               ver={ver}
-              C={C}
               savedBuilds={savedBuilds}
               loadFromSlot={loadFromSlot}
               setConfirmDelete={setConfirmDelete}
@@ -446,7 +444,6 @@ export default function App() {
               setMpos={setMpos}
               dragOverSlot={dragOverSlot}
               ver={ver}
-              C={C}
               champDetail={champDetail}
               setShowSaveModal={setShowSaveModal}
             />
@@ -465,7 +462,6 @@ export default function App() {
               setTooltip={setTooltip}
               setMpos={setMpos}
               ver={ver}
-              C={C}
             />
           </div>
         </div>
@@ -484,7 +480,6 @@ export default function App() {
           item={tooltip} 
           pos={mpos} 
           ver={ver} 
-          C={C} 
           FMT={ITEM_STAT_FMT} 
           getStatLabel={getStatLabel}
           format={formatDescription} 
@@ -617,7 +612,7 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
               <div className="stat-label">{cfg.label}</div>
               <div className="stat-bar-container">
                 <div className="stat-bar-fill" style={{ width:`${basePct}%`, background:cfg.color, opacity:0.75 }} />
-                <div className="stat-bar-bonus" style={{ width:`${bonusPct}%`, background:C.G }} />
+                <div className="stat-bar-bonus" style={{ width:`${bonusPct}%`, background:`var(--c-gold)` }} />
               </div>
               <div className="stat-value">
                 <span className={bonus > 0.001 ? 'has-bonus' : ''}>{cfg.fmt(total)}</span>
