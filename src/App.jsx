@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import "./App.css";
 
 const DDR = "https://ddragon.leagueoflegends.com";
@@ -659,15 +659,33 @@ function Chip({ label, val, C }) {
 }
 
 function ItemTooltip({ item, pos, ver, C, FMT, getStatLabel, format, shift }) {
+  const [h, setH] = useState(0);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (ref.current) setH(ref.current.offsetHeight);
+  }, [item, shift]);
+
   const TW = 280;
-  const left = typeof window !== 'undefined' && pos.x + 14 + TW > window.innerWidth ? pos.x - TW - 8 : pos.x + 14;
-  const top  = Math.max(10, pos.y - 10);
+  const gap = 14;
+  
+  let left = pos.x + gap;
+  if (left + TW > window.innerWidth) left = pos.x - TW - gap;
+  if (left < 0) left = 10;
+
+  let top = pos.y - 10;
+  if (h > 0 && top + h > window.innerHeight) top = window.innerHeight - h - 10;
+  if (top < 10) top = 10;
 
   const itemStats = item.stats ? Object.entries(item.stats) : [];
   const descHtml = format(item.description || "");
 
   return (
-    <div className="tooltip-container" style={{ left, top }}>
+    <div 
+      ref={ref}
+      className="tooltip-container" 
+      style={{ left, top, transition: "top 0.1s, left 0.1s" }}
+    >
       <div className="tooltip-header">
         <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} className="tooltip-img" />
         <div className="tooltip-meta">
