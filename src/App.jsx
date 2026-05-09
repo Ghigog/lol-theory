@@ -9,31 +9,31 @@ const growStat = (base, growth, lvl) => {
   return base + growth * n * (0.7025 + 0.0175 * n);
 };
 
-const formatDescription = (html = "") => {
-  if (!html) return "";
-  let res = html;
+const formatDescription = (desc) => {
+  if (!desc) return "";
+  let res = desc;
 
   // 1. Process <stats> block into bullet points
   res = res.replace(/<stats>(.*?)<\/stats>/gs, (match, p1) => {
     const lines = p1.split(/<br\s*\/?>/gi).map(l => l.trim()).filter(Boolean);
-    return `<div class="d-stats">${lines.map(l => `<div class="stat-line"><span class="bullet">•</span> ${l}</div>`).join('')}</div>`;
+    return `<div class="d-stats">${lines.map(l => `<div class="stat-line"><span class="bullet">+</span> ${l.replace(/<.*?>/g, "")}</div>`).join('')}</div>`;
   });
 
-  // 2. Format <attention> tags (usually numbers) to be bold/bright
-  res = res.replace(/<attention>(.*?)<\/attention>/gi, '<span class="d-attn">$1</span>');
+  // 2. Highlight <attention> and damage/effect tags
+  res = res.replace(/<(attention|physicalDamage|magicDamage|trueDamage|keyword|healing|shield|speed|attackSpeed|lifesteal|keywordStealth|status|recharge)>(.*?)<\/\1>/gs, '<span class="d-attn">$2</span>');
 
-  // 3. Format subheadings (<passive>, <active>, <status>) to be bold and on new lines
-  res = res.replace(/<(passive|active|status)>(.*?)<\/\1>/gi, '<div class="d-header">$2</div>');
+  // 3. Passive/Active/Status/Unique headers
+  res = res.replace(/<(passive|active|status|unique)>(.*?)<\/\1>/gs, '<div class="d-header">$2</div>');
 
-  // 4. Handle other Riot-specific tags (like <flavorText>, <mainText>, damage types)
+  // 4. Flavor/Rules (Extended details)
   res = res.replace(/<(flavorText|rule)>(.*?)<\/\1>/gs, '<div class="d-extended">$2</div>');
-  res = res.replace(/<mainText>(.*?)<\/mainText>/gs, '<div class="d-block">$2</div>');
-  res = res.replace(/<(physicalDamage|magicDamage|trueDamage|healing|shield|speed|attackSpeed|lifesteal|keywordStealth|status|recharge)>(.*?)<\/\1>/gi, '<span class="d-attn">$2</span>');
 
-  // 5. Final cleanup: handle remaining <br>, strip unknown tags, and fix whitespace
+  // 5. Main blocks
+  res = res.replace(/<mainText>(.*?)<\/mainText>/gs, '<div class="d-block">$2</div>');
+
+  // 6. Generic tags cleanup but keep content
   res = res.replace(/<br\s*\/?>/gi, "<br/>");
   res = res.replace(/<(?!br|div|span|\/div|\/span)(.*?)>/gi, "");
-
   return res.trim();
 };
 
@@ -75,11 +75,17 @@ const ITEM_STAT_FMT = {
   FlatMovementSpeedMod:  v => ["Move Speed",       `+${Math.round(v)}`],
   PercentMovementSpeedMod: v => ["Move Speed",     `+${Math.round(v*100)}%`],
   FlatAttackSpeedMod:    v => ["Attack Speed",     `+${Math.round(v*100)}%`],
-  FlatCritChanceMod:     v => ["Crit Chance",      `+${Math.round(v*100)}%`],
-  FlatHPRegenMod:        v => ["HP Regen",         `+${v.toFixed(1)}`],
-  FlatMPRegenMod:        v => ["Mana Regen",       `+${v.toFixed(1)}`],
-  PercentLifeStealMod:   v => ["Life Steal",       `+${Math.round(v*100)}%`],
+  FlatCritChanceMod:     v => ["Critical Strike",  `${Math.round(v*100)}%`],
+  FlatHPRegenMod:        v => ["Base HP Regen",    `${Math.round(v*100)}%`],
+  FlatMPRegenMod:        v => ["Base Mana Regen",  `${Math.round(v*100)}%`],
+  PercentLifeStealMod:   v => ["Life Steal",       `${Math.round(v*100)}%`],
   PercentCritDamageMod:  v => ["Bonus Crit Dmg",   `+${Math.round(v*100)}%`],
+};
+
+const getStatLabel = (key, val) => {
+  if (ITEM_STAT_FMT[key]) return ITEM_STAT_FMT[key](val);
+  const label = key.replace(/Flat|Mod|Pool/g, "").replace(/([A-Z])/g, " $1").trim();
+  return [label, `+${val}`];
 };
 
 // ─── Main App ────────────────────────────────────────────────────────────────
@@ -434,6 +440,7 @@ export default function App() {
           ver={ver} 
           C={C} 
           FMT={ITEM_STAT_FMT} 
+          getStatLabel={getStatLabel}
           format={formatDescription} 
           shift={shiftPressed} 
         />
@@ -649,7 +656,7 @@ function Chip({ label, val, C }) {
   );
 }
 
-function ItemTooltip({ item, pos, ver, C, FMT, format, shift }) {
+function ItemTooltip({ item, pos, ver, C, FMT, getStatLabel, format, shift }) {
   const TW = 280;
   const left = typeof window !== 'undefined' && pos.x + 14 + TW > window.innerWidth ? pos.x - TW - 8 : pos.x + 14;
   const top  = Math.max(10, pos.y - 10);
@@ -675,7 +682,7 @@ function ItemTooltip({ item, pos, ver, C, FMT, format, shift }) {
       {itemStats.length > 0 && (
         <div className="tooltip-stats">
           {itemStats.map(([key, val]) => {
-            const [label, fval] = FMT[key](val);
+            const [label, fval] = getStatLabel(key, val);
             return (
               <div key={key} className="tooltip-stat-row">
                 <span className="stat-name">{label}</span>
