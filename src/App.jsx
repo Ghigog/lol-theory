@@ -57,6 +57,7 @@ const STATS = [
   { k: "attackspeed",label: "Attack Speed",    color: "#FCD34D", max: 2.5,  fmt: v => v.toFixed(3), fmtB: v => `+${v.toFixed(3)}` },
   { k: "critchance", label: "Crit Chance",     color: "#EF4444", max: 1.0,  fmt: v => Math.round(v*100)+"%", fmtB: v => `+${Math.round(v*100)}%` },
   { k: "lifesteal",  label: "Life Steal",      color: "#10B981", max: 1.0,  fmt: v => Math.round(v*100)+"%", fmtB: v => `+${Math.round(v*100)}%`, itemOnly: true },
+  { k: "range",      label: "Range",           color: "#94A3B8", max: 800,  fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}` },
   { k: "movespeed",  label: "Move Speed",      color: "#60A5FA", max: 600,  fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}` },
 ];
 
@@ -105,7 +106,7 @@ export default function App() {
   const [champDetail,   setChampDetail] = useState(null);
   const [allItems,      setAllItems]    = useState({});
   const [level,         setLevel]       = useState(13);
-  const [equipped,      setEquipped]    = useState(Array(6).fill(null));
+  const [equipped,      setEquipped]    = useState(Array(7).fill(null));
   const [shopSearch,    setShopSearch]  = useState("");
   const [shopCat,       setShopCat]     = useState("all");
   const [tooltip,       setTooltip]     = useState(null);
@@ -191,10 +192,11 @@ export default function App() {
       mr:          growStat(s.spellblock, s.spellblockperlevel, level),
       attackspeed: s.attackspeed * (1 + (s.attackspeedperlevel * n) / 100),
       movespeed:   s.movespeed,
+      range:       s.attackrange,
       ap: 0, critchance: 0, lifesteal: 0,
     };
 
-    const bon = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, moveSpeedPct:0 };
+    const bon = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, moveSpeedPct:0, range:0 };
 
     equipped.forEach(item => {
       if (!item?.stats) return;
@@ -227,6 +229,7 @@ export default function App() {
       critchance:  bon.critchance,
       lifesteal:   bon.lifesteal,
       movespeed:   (base.movespeed + bon.movespeed) * (1 + bon.moveSpeedPct),
+      range:       base.range + bon.range,
     };
 
     return { base, total };
@@ -274,12 +277,12 @@ export default function App() {
   };
 
   const clearBuild = () => {
-    setEquipped(Array(6).fill(null));
+    setEquipped(Array(7).fill(null));
   };
 
   const resetAll = () => {
     setChampDetail(null);
-    setEquipped(Array(6).fill(null));
+    setEquipped(Array(7).fill(null));
     setLevel(1);
     setShowPicker(true);
     setChampSearch("");
@@ -318,7 +321,10 @@ export default function App() {
     setLevel(b.level);
     
     // 3. Set Items
-    const items = b.itemIds.map(id => id ? { ...allItems[id], itemId: id } : null);
+    const items = Array(7).fill(null).map((_, i) => {
+      const id = b.itemIds?.[i];
+      return id ? { ...allItems[id], itemId: id } : null;
+    });
     setEquipped(items);
   };
 
@@ -363,8 +369,6 @@ export default function App() {
   const onDragEnd = () => { setDragging(null); setDragOverSlot(null); };
 
   const totalGold = equipped.reduce((s, i) => s + (i?.gold?.total || 0), 0);
-  const hasMana   = champDetail?.partype === "Mana";
-  const hasEnergy = champDetail?.partype === "Energy";
 
   const filteredChamps = Object.values(allChamps)
     .filter(c => c.name.toLowerCase().includes(champSearch.toLowerCase()))
@@ -425,8 +429,6 @@ export default function App() {
               stats={stats}
               level={level}
               setLevel={setLevel}
-              hasMana={hasMana}
-              hasEnergy={hasEnergy}
               setShowPicker={setShowPicker}
               ver={ver}
               savedBuilds={savedBuilds}
@@ -597,12 +599,19 @@ function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp
   );
 }
 
-function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEnergy, setShowPicker, ver, savedBuilds, loadFromSlot, setConfirmDelete }) {
+function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, ver, savedBuilds, loadFromSlot, setConfirmDelete }) {
   return (
     <div className="champ-details">
       <div className="champ-header-card">
         <div className="champ-info">
-          <img src={`${DDR}/cdn/${ver}/img/champion/${champDetail.image.full}`} alt={champDetail.name} className="champ-avatar" />
+          <div className="champ-avatar-wrapper" onClick={() => setShowPicker(true)} title="Change Champion">
+            <img src={`${DDR}/cdn/${ver}/img/champion/${champDetail.image.full}`} alt={champDetail.name} className="champ-avatar" />
+            <div className="champ-avatar-overlay">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+              </svg>
+            </div>
+          </div>
           <div className="champ-meta">
             <div className="champ-name">{champDetail.name}</div>
             <div className="champ-title">{champDetail.title}</div>
@@ -610,7 +619,6 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
               {champDetail.tags?.map(t => <span key={t} className="tag">{t}</span>)}
             </div>
           </div>
-          <button onClick={() => setShowPicker(true)} className="change-btn">CHANGE</button>
         </div>
 
         <div className="level-control">
@@ -625,11 +633,28 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
 
       <div className="stat-bars">
         {stats && STATS.map(cfg => {
-          if (cfg.resource && !hasMana && !hasEnergy) return null;
+          const hasRes = champDetail.partype && champDetail.partype !== "None";
+          if (cfg.resource && !hasRes) return null;
+
           const total = stats.total[cfg.k] ?? 0;
           const base  = stats.base[cfg.k]  ?? 0;
           const bonus = total - base;
           if (cfg.itemOnly && bonus < 0.001) return null;
+
+          const label = cfg.resource 
+            ? (cfg.sub ? `${champDetail.partype} Regen` : champDetail.partype)
+            : cfg.label;
+
+          // Dynamic colors for non-mana resources
+          let barColor = cfg.color;
+          if (cfg.resource && champDetail.partype !== "Mana") {
+            if (champDetail.partype === "Energy") {
+              barColor = cfg.sub ? "#EAB308" : "#FACC15";
+            } else {
+              // Fury, Blood Well, Heat, etc.
+              barColor = cfg.sub ? "#DC2626" : "#EF4444";
+            }
+          }
 
           const barMax  = cfg.max;
           const totalPct  = Math.min(total / barMax, 1) * 100;
@@ -638,9 +663,9 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
 
           return (
             <div key={cfg.k} className={`stat-row ${cfg.sub ? 'sub' : ''}`}>
-              <div className="stat-label">{cfg.label}</div>
+              <div className="stat-label">{label}</div>
               <div className="stat-bar-container">
-                <div className="stat-bar-fill" style={{ width:`${basePct}%`, background:cfg.color, opacity:0.75 }} />
+                <div className="stat-bar-fill" style={{ width:`${basePct}%`, background:barColor, opacity:0.75 }} />
                 <div className="stat-bar-bonus" style={{ width:`${bonusPct}%`, background:`var(--c-gold)` }} />
               </div>
               <div className="stat-value">
@@ -650,13 +675,6 @@ function ChampionDetails({ champDetail, stats, level, setLevel, hasMana, hasEner
             </div>
           );
         })}
-
-        <div className="gold-divider" />
-        <div className="champ-footer-chips">
-          <Chip label="Resource" val={champDetail.partype} />
-          <Chip label="Range"    val={champDetail.stats.attackrange} />
-          <Chip label="Movespeed" val={champDetail.stats.movespeed} />
-        </div>
       </div>
     </div>
   );
@@ -683,7 +701,7 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
         {equipped.map((item, idx) => (
           <div
             key={idx}
-            className={`slot-box ${dragOverSlot === idx ? 'drag-over' : ''} ${item ? 'has-item' : ''} ${idx === 5 ? 'special-item-slot' : ''}`}
+            className={`slot-box ${dragOverSlot === idx ? 'drag-over' : ''} ${item ? 'has-item' : ''} ${idx === 6 ? 'special-item-slot' : ''}`}
             draggable={!!item}
             onDragStart={e => onSlotDragStart(e, idx)}
             onDragOver={e => onSlotDragOver(e, idx)}

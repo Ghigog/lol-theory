@@ -266,11 +266,58 @@
   align-items: center;
 }
 
-.champ-avatar {
+.champ-avatar-wrapper {
+  position: relative;
   width: 80px;
   height: 80px;
+  cursor: pointer;
   border: 2px solid var(--c-gold);
   box-shadow: 0 0 20px var(--c-gold-glow);
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: var(--trans);
+}
+
+.champ-avatar-wrapper:hover {
+  border-color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+.champ-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.champ-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 18, 30, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: var(--trans);
+  backdrop-filter: blur(2px);
+}
+
+.champ-avatar-wrapper:hover .champ-avatar-overlay {
+  opacity: 1;
+}
+
+.champ-avatar-overlay svg {
+  width: 24px;
+  height: 24px;
+  color: var(--c-gold);
+  filter: drop-shadow(0 0 5px var(--c-gold-glow));
+  transform: translateY(10px);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.champ-avatar-wrapper:hover .champ-avatar-overlay svg {
+  transform: translateY(0);
 }
 
 .champ-name {
@@ -390,7 +437,7 @@ input[type=range]::-webkit-slider-thumb {
 
 .inventory-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 12px;
   margin-top: 1rem;
 }
