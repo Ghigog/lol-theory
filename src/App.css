@@ -262,30 +262,30 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
 .no-results { color: var(--c-text-dim); font-size: 13px; padding: 20px 0; }
 
 /* ── Tooltip ── */
-.tooltip-container { position: fixed; width: 280px; background: #0A1824; border: 1px solid var(--c-gold); border-radius: 4px; padding: 12px; z-index: 9999; pointer-events: none; box-shadow: 0 6px 30px rgba(0,0,0,.9); }
-.tooltip-header { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--c-gold-dim); }
-.tooltip-img { width: 42px; height: 42px; border: 2px solid var(--c-gold); border-radius: 2px; flex-shrink: 0; }
+.tooltip-container { position: fixed; width: 280px; background: #0A1824; border: 1px solid var(--c-gold); border-radius: 4px; padding: 10px; z-index: 9999; pointer-events: none; box-shadow: 0 6px 30px rgba(0,0,0,.9); }
+.tooltip-container.pinned { pointer-events: auto; }
+.tooltip-header { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--c-gold-dim); }
+.tooltip-img { width: 38px; height: 38px; border: 2px solid var(--c-gold); border-radius: 2px; flex-shrink: 0; }
 .tooltip-name { font-family: var(--ff-title); color: var(--c-gold); font-size: 13px; line-height: 1.2; font-weight: 600; }
 .tooltip-gold { margin-top: 4px; display: flex; gap: 8px; align-items: center; }
 .gold-text { color: var(--c-gold); font-size: 12px; }
 .sell-text { color: var(--c-text-dim); font-size: 10px; }
 
-.tooltip-stats { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--c-gold-dim); }
-.tooltip-stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 3px; }
+.tooltip-stats { margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid var(--c-gold-dim); }
+.tooltip-stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 1px; }
 .stat-name { color: var(--c-text-secondary); }
 .stat-val { color: #A8FF78; font-weight: 600; }
 
-.tooltip-desc { color: var(--c-text-dim); font-size: 11px; line-height: 1.55; max-height: 220px; overflow-y: auto; padding-right: 4px; }
-.tooltip-desc.show-extended { max-height: 450px; }
-.tooltip-desc .d-stats { margin-bottom: 10px; color: #A8FF78; }
-.tooltip-desc .stat-line { display: flex; gap: 6px; margin-bottom: 2px; }
+.tooltip-desc { color: var(--c-text-dim); font-size: 11px; line-height: 1.4; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+.tooltip-desc.show-extended { max-height: 550px; }
+.tooltip-desc .d-stats { margin-bottom: 4px; color: #A8FF78; }
+.tooltip-desc .stat-line { display: flex; gap: 4px; margin-bottom: 0px; }
 .tooltip-desc .bullet { color: var(--c-gold); font-weight: bold; }
 .tooltip-desc .d-attn { color: #fff; font-weight: 700; }
-.tooltip-desc .d-header { color: var(--c-gold); font-weight: 700; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
-.tooltip-desc .d-block { margin-bottom: 8px; }
-.tooltip-desc .d-extended { display: none; color: var(--c-text-secondary); font-style: italic; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--c-gold-dim); }
-.tooltip-desc.show-extended .d-extended { display: block; }
-.shift-hint { margin-top: 12px; font-size: 9px; color: var(--c-gold); letter-spacing: 1px; text-align: center; border-top: 1px solid var(--c-gold-dim); padding-top: 8px; opacity: 0.7; }
+.tooltip-desc .d-header { color: var(--c-gold); font-weight: 700; margin-top: 6px; margin-bottom: 1px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+.tooltip-desc .d-block { margin-bottom: 4px; }
+.tooltip-desc .d-extended { color: var(--c-text-secondary); font-style: italic; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--c-gold-dim); }
+.shift-hint { margin-top: 6px; font-size: 9px; color: var(--c-gold); letter-spacing: 1px; text-align: center; border-top: 1px solid var(--c-gold-dim); padding-top: 4px; opacity: 0.7; }
 
 /* ── Mobile Logic ── */
 @media (max-width: 768px) {
