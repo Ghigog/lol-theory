@@ -469,13 +469,16 @@ export default function App() {
           <button id="nav-shop" className={activeTab === 'shop' ? 'active' : ''} onClick={() => setActiveTab('shop')}>SHOP</button>
         </nav>
       )}
-
+      {tooltip && ver && (
+        <ItemTooltip 
+          item={tooltip} 
           pos={mpos} 
           ver={ver} 
           FMT={ITEM_STAT_FMT} 
           getStatLabel={getStatLabel}
           format={formatDescription} 
         />
+      )}
 
       {showSaveModal && (
         <Modal title="Save Build" onClose={() => setShowSaveModal(false)}>
