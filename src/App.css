@@ -225,7 +225,24 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
 .slot-box.has-item { cursor: pointer; background: var(--c-input-bg); border-color: var(--c-gold-dim); }
 .slot-box.drag-over { background: rgba(200,155,60,.18); border-color: var(--c-gold); }
 .item-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 2px; }
-.item-price { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.78); color: var(--c-gold); font-size: 9px; text-align: center; padding: 1px 0; font-family: var(--ff-title); letter-spacing: 0.5px; }
+.item-price { 
+  position: absolute; 
+  bottom: 0; 
+  left: 0; 
+  right: 0; 
+  height: 25%;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 100%);
+  backdrop-filter: blur(2px);
+  color: var(--c-gold); 
+  font-size: 9px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-title); 
+  letter-spacing: 0.5px; 
+  line-height: 1;
+  pointer-events: none;
+}
 .slot-rm { display: none; position: absolute; inset: 0; background: rgba(180,20,20,.65); align-items: center; justify-content: center; font-size: 20px; color: #fff; border-radius: 2px; font-weight: 700; }
 .slot-box:hover .slot-rm { display: flex; }
 .empty-slot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--c-blue-border); font-size: 20px; }
@@ -241,7 +258,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
 .item-cell { position: relative; width: 52px; height: 52px; border: 2px solid var(--c-gold-dim); border-radius: 3px; overflow: hidden; flex-shrink: 0; cursor: pointer; transition: all .15s ease; }
 .item-cell:hover { border-color: var(--c-gold); transform: scale(1.06); z-index: 2; }
 .item-cell img { width: 100%; height: 100%; display: block; }
-.item-cell .item-price { font-size: 8px; letter-spacing: 0.3px; background: rgba(0,0,0,0.8); }
+.item-cell .item-price { font-size: 8px; letter-spacing: 0.3px; }
 .no-results { color: var(--c-text-dim); font-size: 13px; padding: 20px 0; }
 
 /* ── Tooltip ── */
