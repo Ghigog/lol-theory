@@ -212,4 +212,30 @@ As a player, I'd like the item shop to group items by their appropriate tier (Ba
 - **Estimated complexity**: Low-Medium
 - **Risk assessment**: Minimal. UI grouping logic is self-contained.
 
+---
+
+## Ticket #9: Mobile Scroll Fix & Responsiveness Audit
+*Status: Open*
+### User Story
+As a mobile user, I'd like to be able to scroll vertically and access all features (like saving builds) so that I can view and interact with all application features without getting stuck.
+
+- **Context**: A recent update or layout change has broken vertical scrolling on mobile devices, rendering parts of the app inaccessible. Additionally, on mobile, the saved builds list is not accessible, and users cannot add their builds to the saved builds list. There is empty space under the item build tab that could be utilized for this.
+- **Description**: Perform a comprehensive mobile responsiveness audit to identify and fix the CSS or layout constraints blocking vertical scrolling. Integrate an "Add to Saved Builds" button in the unused space beneath the item build tab to ensure this feature is accessible on mobile.
+- **Requirements**:
+    - Debug and remove any properties restricting vertical scrolling on mobile viewports (e.g., `overflow: hidden`, `height: 100vh`).
+    - Audit all mobile breakpoints to ensure containers overflow properly and are scrollable.
+    - Design and implement an "Add to Saved Builds" button adhering to the Hextech aesthetic, placing it beneath the item build tab.
+    - Wire the button to the existing build persistence logic.
+    - Maintain the "Hextech" aesthetic during adjustments.
+
+### Acceptance criteria
+- **Given** I am using a mobile device or a simulated mobile viewport
+- **When** I attempt to scroll up or down on the page
+- **Then** the page or the appropriate scrollable container should scroll smoothly and reveal hidden content.
+- **Given** I have populated an item build on a mobile device
+- **When** I view the item build tab
+- **Then** I should see a clear button to save my build in the space underneath it, and clicking it saves my configuration.
+
+- **Estimated complexity**: Medium
+- **Risk assessment**: Altering global scroll properties or container heights might affect desktop layout or fixed panels.
 
