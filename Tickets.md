@@ -24,7 +24,7 @@ This document tracks all planned features and technical tasks for **Theory Forge
 ## 🟢 Open Tickets
 
 ## Ticket #1: Ability Scaling Logic (Meraki Analytics Migration)
-*Status: Open*
+*Status: done*
 ### User Story
 As a theorycrafter, I'd like to see the damage and scaling of champion abilities so that I can evaluate the impact of different item builds on burst and DPS.
 

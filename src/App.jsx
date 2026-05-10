@@ -176,9 +176,19 @@ export default function App() {
   // ── Champion Pick ───────────────────────────────────────────────────────────
   const pickChamp = async (c) => {
     if (!ver) return;
-    const d = await fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`).then(r => r.json());
-    setChampDetail(d);
-    setShowPicker(false);
+    try {
+      const res = await fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`);
+      if (!res.ok) {
+        alert("Meraki Analytics data not available for this champion yet.");
+        return;
+      }
+      const d = await res.json();
+      setChampDetail(d);
+      setShowPicker(false);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to fetch champion data.");
+    }
   };
 
   // ── Stat Calculation ────────────────────────────────────────────────────────
@@ -188,16 +198,16 @@ export default function App() {
     const n = level - 1;
 
     const base = {
-      hp:          growStat(s.health.flat, s.health.perLevel, level),
-      hpregen:     growStat(s.healthRegen.flat, s.healthRegen.perLevel, level),
-      mp:          growStat(s.mana.flat, s.mana.perLevel, level),
-      mpregen:     growStat(s.manaRegen.flat, s.manaRegen.perLevel, level),
-      ad:          growStat(s.attackDamage.flat, s.attackDamage.perLevel, level),
-      armor:       growStat(s.armor.flat, s.armor.perLevel, level),
-      mr:          growStat(s.magicResistance.flat, s.magicResistance.perLevel, level),
-      attackspeed: s.attackSpeed.flat * (1 + (s.attackSpeed.perLevel * n) / 100),
-      movespeed:   s.movespeed.flat,
-      range:       s.attackRange.flat,
+      hp:          growStat(s?.health?.flat ?? 0, s?.health?.perLevel ?? 0, level),
+      hpregen:     growStat(s?.healthRegen?.flat ?? 0, s?.healthRegen?.perLevel ?? 0, level),
+      mp:          growStat(s?.mana?.flat ?? 0, s?.mana?.perLevel ?? 0, level),
+      mpregen:     growStat(s?.manaRegen?.flat ?? 0, s?.manaRegen?.perLevel ?? 0, level),
+      ad:          growStat(s?.attackDamage?.flat ?? 0, s?.attackDamage?.perLevel ?? 0, level),
+      armor:       growStat(s?.armor?.flat ?? 0, s?.armor?.perLevel ?? 0, level),
+      mr:          growStat(s?.magicResistance?.flat ?? 0, s?.magicResistance?.perLevel ?? 0, level),
+      attackspeed: (s?.attackSpeed?.flat ?? 0.625) * (1 + ((s?.attackSpeed?.perLevel ?? 0) * n) / 100),
+      movespeed:   s?.movespeed?.flat ?? 330,
+      range:       s?.attackRange?.flat ?? 125,
       ap: 0, critchance: 0, lifesteal: 0,
     };
 
@@ -300,7 +310,7 @@ export default function App() {
     if (!champDetail) return;
     const newBuilds = [...savedBuilds];
     newBuilds[idx] = {
-      champId: champDetail.id,
+      champId: champDetail.key,
       champName: champDetail.name,
       level: level,
       itemIds: equipped.map(i => i ? i.itemId : null),
@@ -317,9 +327,16 @@ export default function App() {
     // 1. Pick Champ
     const c = allChamps[b.champId];
     if (c) {
-      const d = await fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`).then(r => r.json());
-      setChampDetail(d);
-      setShowPicker(false);
+      try {
+        const res = await fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`);
+        if (res.ok) {
+          const d = await res.json();
+          setChampDetail(d);
+          setShowPicker(false);
+        }
+      } catch (e) {
+        console.error("Failed to load hydrated champion from Meraki", e);
+      }
     }
     
     // 2. Set Stats
@@ -610,8 +627,9 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
   };
 
   const renderModifier = (mod, stats) => {
-    const unit = mod.units[0] || "";
-    const baseStr = mod.values.map(v => Number.isInteger(v) ? v : v.toFixed(1)).join(" / ");
+    if (!mod) return null;
+    const unit = (mod.units || [])[0] || "";
+    const baseStr = (mod.values || []).map(v => typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(1)) : String(v)).join(" / ");
 
     if (unit === "") return baseStr;
     
@@ -626,7 +644,7 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
     else if (uLower.includes("% mr") || uLower.includes("% magic resistance")) statVal = stats?.total?.mr || 0;
 
     if (statVal > 0) {
-      const calculated = mod.values.map(v => Math.round(statVal * (v / 100)));
+      const calculated = (mod.values || []).map(v => typeof v === 'number' ? Math.round(statVal * (v / 100)) : 0);
       return (
         <span className="dynamic-scaling">
           {baseStr} {unit}
@@ -732,7 +750,7 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
                     <div className="ability-key">{key === "P" ? "Passive" : key}</div>
                   </div>
                   <div className="ability-desc">
-                    {ability.effects.map((eff, i) => (
+                    {(ability.effects || []).map((eff, i) => (
                       <div key={i} className="ability-effect-block">
                         <div dangerouslySetInnerHTML={{ __html: formatDescription(eff.description) }} />
                         {eff.leveling && eff.leveling.length > 0 && (
@@ -740,7 +758,7 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
                             {eff.leveling.map((lvl, j) => (
                               <div key={j} className="scaling-row">
                                 <span className="scaling-attr">{lvl.attribute}:</span>
-                                {lvl.modifiers.map((mod, k) => (
+                                {(lvl.modifiers || []).map((mod, k) => (
                                   <span key={k} className="scaling-val">{renderModifier(mod, stats)}</span>
                                 ))}
                               </div>
