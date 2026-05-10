@@ -719,7 +719,7 @@ function AbilityRow({ abilityKey, name, iconSrc, effects, stats }) {
       className={`ability-row ${open ? 'open' : ''}`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
-      onPointerDown={e => { e.stopPropagation(); setOpen(o => !o); }}
+      onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
     >
       <div className="ability-row-main">
         <img src={iconSrc} alt={name} className="ability-img" />
@@ -927,8 +927,12 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
             onDragEnd={onDragEnd}
             onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }) : undefined}
             onMouseLeave={item ? () => { setTooltip(null); setTooltipAnchor(null); } : undefined}
-            onPointerDown={e => {
-              if (e.pointerType !== 'mouse') {
+            onPointerUp={e => { e.currentTarget.dataset.lastPointer = e.pointerType; }}
+            onClick={e => {
+              const pType = e.currentTarget.dataset.lastPointer;
+              if (item && (pType === 'mouse' || e.detail === 0)) {
+                removeItem(idx);
+              } else {
                 e.stopPropagation();
                 if (item) {
                   if (tooltip?.itemId === item.itemId) { setTooltip(null); setTooltipAnchor(null); }
@@ -936,7 +940,6 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
                 }
               }
             }}
-            onClick={e => { if (item && (e.pointerType === 'mouse' || e.detail === 0)) removeItem(idx); }}
           >
             {item ? (
               <>
@@ -1040,14 +1043,17 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
                       onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }}
                       onMouseLeave={() => { setTooltip(null); setTooltipAnchor(null); }}
                       onMouseMove={e => setMpos({ x:e.clientX, y:e.clientY })}
-                      onPointerDown={e => {
-                        if (e.pointerType !== 'mouse') {
+                      onPointerUp={e => { e.currentTarget.dataset.lastPointer = e.pointerType; }}
+                      onClick={(e) => {
+                        const pType = e.currentTarget.dataset.lastPointer;
+                        if (pType === 'mouse' || e.detail === 0) {
+                          addItem(item);
+                        } else {
                           e.stopPropagation();
                           if (tooltip?.itemId === item.itemId) { setTooltip(null); setTooltipAnchor(null); }
                           else { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }
                         }
                       }}
-                      onClick={(e) => { if (e.pointerType === 'mouse' || e.detail === 0) addItem(item); }}
                     >
                       <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} />
                       <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
