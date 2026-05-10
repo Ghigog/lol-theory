@@ -790,6 +790,10 @@ input[type=range]::-webkit-slider-thumb {
     width: 100%;
   }
 
+  .build-panel {
+    flex: 0 0 auto;
+  }
+
   .panel-group {
     display: none;
     height: 100%;
