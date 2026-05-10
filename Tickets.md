@@ -23,26 +23,27 @@ This document tracks all planned features and technical tasks for **Theory Forge
 
 ## 🟢 Open Tickets
 
-## Ticket #1: Ability Scaling Logic
+## Ticket #1: Ability Scaling Logic (Meraki Analytics Migration)
 *Status: Open*
 ### User Story
 As a theorycrafter, I'd like to see the damage and scaling of champion abilities so that I can evaluate the impact of different item builds on burst and DPS.
 
-- **Context**: Champions aren't just stat sticks; their power comes from their kits. Currently, the app only shows base stats.
-- **Description**: Implement a system to parse and display champion ability data (Q, W, E, R) with real-time damage calculations based on the current build's stats (AD, AP, HP, etc.).
+- **Context**: Champions aren't just stat sticks; their power comes from their kits. Riot's official Data Dragon API has removed internal scaling coefficients (`datavalues`, `effect` arrays). To implement dynamic scaling, we must migrate our champion data source to Meraki Analytics (`lolstaticdata`), a community-maintained repository that provides clean JSON with explicit math coefficients and parsed tooltips.
+- **Description**: Migrate the application's champion data fetching from Data Dragon to Meraki Analytics. Update the champion details and abilities UI to parse and calculate ability damage using Meraki's structured math objects, and dynamically re-calculate these values when the user's inventory or level changes.
 - **Requirements**:
-    - Fetch full champion detail data from Data Dragon.
-    - Parse scaling coefficients from the `spells` array.
-    - Calculate "final" damage values using current `total` stats.
-    - Create a UI section for Ability tooltips/cards.
+    - Switch champion data fetching to use `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json` (or individual champion endpoints).
+    - Refactor `pickChamp` and `stats` useMemo to accommodate the new Meraki JSON schema.
+    - Parse scaling coefficients from Meraki's `abilities` object (which maps to Q, W, E, R).
+    - Calculate "final" damage values using current `total` stats and inject them into the ability tooltips.
+    - Ensure backwards compatibility or refactor the items and stat calculations if necessary.
 
 ### Acceptance criteria
 - **Given** I have a champion selected and items equipped
 - **When** I view the ability section
-- **Then** I should see the damage numbers update dynamically as I change items or level.
+- **Then** I should see the damage numbers update dynamically as I change items or level, calculated accurately using Meraki Analytics data.
 
 - **Estimated complexity**: High
-- **Risk assessment**: Parsing Data Dragon's tooltip strings for math formulas is notoriously difficult and prone to breaking on patch changes.
+- **Risk assessment**: Refactoring the core champion data model will touch multiple components (ChampionPicker, ChampionDetails, Inventory). Ensure that the UI does not break during the data schema transition.
 
 ---
 

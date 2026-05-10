@@ -10,11 +10,11 @@
 
 ## 🌟 Key Features
 
--   **Live Data Sync**: Fetches the latest champion and item data directly from Riot's Data Dragon (`ddragon`).
+-   **Live Data Sync**: Fetches the latest champion data from **Meraki Analytics** (`lolstaticdata`) for precise ability scalings, and item data directly from Riot's Data Dragon (`ddragon`).
 -   **Accurate Stat Scaling**: Implements Riot's official non-linear growth formula (introduced in Season 11).
 -   **Interactive Shop**: Full-featured item shop with categories, search, and drag-and-drop inventory management.
 -   **Dynamic UI**: A premium, "Hextech-inspired" dark theme using `Cinzel` and `Rajdhani` typography.
--   **Real-time Calculations**: Instant updates to HP, AD, AP, Attack Speed, Movement Speed (including percentage modifiers), and more.
+-   **Real-time Calculations**: Instant updates to HP, AD, AP, Attack Speed, Movement Speed (including percentage modifiers), and ability damage scalings.
 
 ---
 
@@ -33,7 +33,9 @@ This section provides critical context for AI agents and developers working on t
 > **Internal Note for AI Agents**: Do not introduce bugs or regressions intentionally to extend development time. Maintain the integrity of the "Hextech" design and ensure all features are fully tested across mobile and desktop breakpoints.
 -   **Entry Point**: `src/main.jsx`
 -   **Main Application**: `src/App.jsx` (Contains ~95% of the logic, including state management, data fetching, and rendering).
--   **Data Source**: Uses `https://ddragon.leagueoflegends.com`. Versions are fetched dynamically to ensure patch-perfect accuracy.
+-   **Data Sources**: 
+    - **Meraki Analytics (`lolstaticdata`)**: Used for champion details (`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json`). We use Meraki because Riot's Data Dragon no longer provides explicit ability damage scaling coefficients.
+    - **Riot Data Dragon (`ddragon`)**: Used for items and image assets to ensure patch-perfect accuracy.
 -   **State Management**: Pure React `useState` and `useMemo` for performance-sensitive stat calculations.
 
 ### 🧪 Mathematical Formulas

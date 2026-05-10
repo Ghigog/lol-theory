@@ -42,6 +42,11 @@ const formatDescription = (desc) => {
   res = res.replace(/(<br\s*\/?>){2,}/gi, "<br/>"); // No double breaks
   res = res.replace(/<div class="d-block">\s*<br\s*\/?>/gi, '<div class="d-block">'); // No leading break in blocks
   
+  // 8. Handle Data Dragon variables (e.g., {{ qdamage }})
+  res = res.replace(/\{\{\s*(.*?)\s*\}\}/g, (match, p1) => {
+    return `<span class="d-var" title="Missing Data Dragon Variable">? ${p1}</span>`;
+  });
+
   return res.trim();
 };
 
@@ -171,8 +176,8 @@ export default function App() {
   // ── Champion Pick ───────────────────────────────────────────────────────────
   const pickChamp = async (c) => {
     if (!ver) return;
-    const d = await fetch(`${DDR}/cdn/${ver}/data/en_US/champion/${c.id}.json`).then(r => r.json());
-    setChampDetail(d.data[c.id]);
+    const d = await fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`).then(r => r.json());
+    setChampDetail(d);
     setShowPicker(false);
   };
 
@@ -183,16 +188,16 @@ export default function App() {
     const n = level - 1;
 
     const base = {
-      hp:          growStat(s.hp, s.hpperlevel, level),
-      hpregen:     growStat(s.hpregen, s.hpregenperlevel, level),
-      mp:          growStat(s.mp, s.mpperlevel, level),
-      mpregen:     growStat(s.mpregen, s.mpregenperlevel, level),
-      ad:          growStat(s.attackdamage, s.attackdamageperlevel, level),
-      armor:       growStat(s.armor, s.armorperlevel, level),
-      mr:          growStat(s.spellblock, s.spellblockperlevel, level),
-      attackspeed: s.attackspeed * (1 + (s.attackspeedperlevel * n) / 100),
-      movespeed:   s.movespeed,
-      range:       s.attackrange,
+      hp:          growStat(s.health.flat, s.health.perLevel, level),
+      hpregen:     growStat(s.healthRegen.flat, s.healthRegen.perLevel, level),
+      mp:          growStat(s.mana.flat, s.mana.perLevel, level),
+      mpregen:     growStat(s.manaRegen.flat, s.manaRegen.perLevel, level),
+      ad:          growStat(s.attackDamage.flat, s.attackDamage.perLevel, level),
+      armor:       growStat(s.armor.flat, s.armor.perLevel, level),
+      mr:          growStat(s.magicResistance.flat, s.magicResistance.perLevel, level),
+      attackspeed: s.attackSpeed.flat * (1 + (s.attackSpeed.perLevel * n) / 100),
+      movespeed:   s.movespeed.flat,
+      range:       s.attackRange.flat,
       ap: 0, critchance: 0, lifesteal: 0,
     };
 
@@ -312,8 +317,8 @@ export default function App() {
     // 1. Pick Champ
     const c = allChamps[b.champId];
     if (c) {
-      const d = await fetch(`${DDR}/cdn/${ver}/data/en_US/champion/${c.id}.json`).then(r => r.json());
-      setChampDetail(d.data[c.id]);
+      const d = await fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`).then(r => r.json());
+      setChampDetail(d);
       setShowPicker(false);
     }
     
@@ -599,12 +604,46 @@ function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp
 }
 
 function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, ver, savedBuilds, loadFromSlot, setConfirmDelete }) {
+  const formatResource = (res) => {
+    if (!res || res === "NONE") return "";
+    return res.replace(/_/g, ' ').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase());
+  };
+
+  const renderModifier = (mod, stats) => {
+    const unit = mod.units[0] || "";
+    const baseStr = mod.values.map(v => Number.isInteger(v) ? v : v.toFixed(1)).join(" / ");
+
+    if (unit === "") return baseStr;
+    
+    let statVal = 0;
+    const uLower = unit.toLowerCase();
+    if (uLower.includes("% bonus ad") || uLower.includes("% bonus attack damage")) statVal = (stats?.total?.ad || 0) - (stats?.base?.ad || 0);
+    else if (uLower.includes("% ad") || uLower.includes("% attack damage")) statVal = stats?.total?.ad || 0;
+    else if (uLower.includes("% ap") || uLower.includes("% ability power")) statVal = stats?.total?.ap || 0;
+    else if (uLower.includes("% bonus health")) statVal = (stats?.total?.hp || 0) - (stats?.base?.hp || 0);
+    else if (uLower.includes("% health") || uLower.includes("% max health")) statVal = stats?.total?.hp || 0;
+    else if (uLower.includes("% armor")) statVal = stats?.total?.armor || 0;
+    else if (uLower.includes("% mr") || uLower.includes("% magic resistance")) statVal = stats?.total?.mr || 0;
+
+    if (statVal > 0) {
+      const calculated = mod.values.map(v => Math.round(statVal * (v / 100)));
+      return (
+        <span className="dynamic-scaling">
+          {baseStr} {unit}
+          <span className="calc-result" title="Dynamically calculated from stats"> (+{calculated.join(" / ")})</span>
+        </span>
+      );
+    }
+
+    return `${baseStr} ${unit}`;
+  };
+
   return (
     <div className="champ-details">
       <div className="champ-header-card">
         <div className="champ-info">
           <div className="champ-avatar-wrapper" onClick={() => setShowPicker(true)} title="Change Champion">
-            <img src={`${DDR}/cdn/${ver}/img/champion/${champDetail.image.full}`} alt={champDetail.name} className="champ-avatar" />
+            <img src={`${DDR}/cdn/${ver}/img/champion/${champDetail.key}.png`} alt={champDetail.name} className="champ-avatar" />
             <div className="champ-avatar-overlay">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
@@ -615,7 +654,7 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
             <div className="champ-name">{champDetail.name}</div>
             <div className="champ-title">{champDetail.title}</div>
             <div className="champ-tags">
-              {champDetail.tags?.map(t => <span key={t} className="tag">{t}</span>)}
+              {champDetail.roles?.map(t => <span key={t} className="tag">{t}</span>)}
             </div>
           </div>
         </div>
@@ -632,7 +671,7 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
 
       <div className="stat-bars">
         {stats && STATS.map(cfg => {
-          const hasRes = champDetail.partype && champDetail.partype !== "None";
+          const hasRes = champDetail.resource && champDetail.resource !== "NONE";
           if (cfg.resource && !hasRes) return null;
 
           const total = stats.total[cfg.k] ?? 0;
@@ -640,14 +679,15 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
           const bonus = total - base;
           if (cfg.itemOnly && bonus < 0.001) return null;
 
+          const resName = formatResource(champDetail.resource);
           const label = cfg.resource 
-            ? (cfg.sub ? `${champDetail.partype} Regen` : champDetail.partype)
+            ? (cfg.sub ? `${resName} Regen` : resName)
             : cfg.label;
 
           // Dynamic colors for non-mana resources
           let barColor = cfg.color;
-          if (cfg.resource && champDetail.partype !== "Mana") {
-            if (champDetail.partype === "Energy") {
+          if (cfg.resource && champDetail.resource !== "MANA") {
+            if (champDetail.resource === "ENERGY") {
               barColor = cfg.sub ? "#EAB308" : "#FACC15";
             } else {
               // Fury, Blood Well, Heat, etc.
@@ -674,6 +714,47 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
             </div>
           );
         })}
+      </div>
+
+      <div className="abilities-section">
+        <div className="panel-title">Abilities</div>
+        <div className="ability-list">
+          {["P", "Q", "W", "E", "R"].map(key => {
+            const abilityArray = champDetail.abilities?.[key];
+            if (!abilityArray || abilityArray.length === 0) return null;
+            const ability = abilityArray[0];
+            return (
+              <div key={key} className="ability-card">
+                <img src={ability.icon} alt={ability.name} className="ability-img" />
+                <div className="ability-info">
+                  <div className="ability-header">
+                    <div className="ability-name">{ability.name}</div>
+                    <div className="ability-key">{key === "P" ? "Passive" : key}</div>
+                  </div>
+                  <div className="ability-desc">
+                    {ability.effects.map((eff, i) => (
+                      <div key={i} className="ability-effect-block">
+                        <div dangerouslySetInnerHTML={{ __html: formatDescription(eff.description) }} />
+                        {eff.leveling && eff.leveling.length > 0 && (
+                          <div className="ability-scaling">
+                            {eff.leveling.map((lvl, j) => (
+                              <div key={j} className="scaling-row">
+                                <span className="scaling-attr">{lvl.attribute}:</span>
+                                {lvl.modifiers.map((mod, k) => (
+                                  <span key={k} className="scaling-val">{renderModifier(mod, stats)}</span>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
