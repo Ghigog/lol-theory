@@ -185,6 +185,36 @@
   height: 18px;
 }
 
+.save-btn {
+  background: none;
+  border: none;
+  color: var(--c-text-dim);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: var(--trans);
+}
+
+.save-btn:hover {
+  color: var(--c-gold);
+  background: rgba(200, 155, 60, 0.1);
+}
+
+.save-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  color: var(--c-text-dim);
+  background: none;
+}
+
+.save-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* ── Champion Picker ── */
 .champ-picker {
   flex: 1;
@@ -761,41 +791,17 @@ input[type=range]::-webkit-slider-thumb {
   }
 
   .panel-group {
+    display: none;
     height: 100%;
   }
 
-  .mobile-save-build-container {
+  .panel-group.active {
     display: flex;
-    justify-content: center;
-    padding: 1rem;
-    margin-top: 1rem;
-  }
-
-  .mobile-save-btn {
-    width: 100%;
-    padding: 12px;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(200, 155, 60, 0.15);
-    border: 2px solid var(--c-gold);
-    border-radius: var(--radius);
-  }
-
-  .mobile-save-btn:hover {
-    background: var(--c-gold);
-  }
-
-  .mobile-save-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: var(--c-gold-dim);
   }
 
   .inventory-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
   }
 
   .shop-grid {

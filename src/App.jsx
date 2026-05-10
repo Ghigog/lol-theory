@@ -461,8 +461,8 @@ export default function App() {
           </div>
         </div>
 
-        <div className={`panel-group ${(activeTab === 'build' || activeTab === 'shop' || !activeTab) ? 'active' : ''}`}>
-          <div className={`panel build-panel ${(activeTab === 'build' || !activeTab) ? 'active' : ''}`}>
+        <div className={`panel-group ${(activeTab === 'build' || !activeTab) ? 'active' : ''}`}>
+          <div className="panel build-panel active">
             <Inventory 
               equipped={equipped}
               clearBuild={clearBuild}
@@ -478,23 +478,9 @@ export default function App() {
               champDetail={champDetail}
               setShowSaveModal={setShowSaveModal}
             />
-            <div className="mobile-save-build-container">
-              <button 
-                className="action-btn mobile-save-btn" 
-                onClick={() => setShowSaveModal(true)}
-                disabled={!champDetail || !equipped.some(Boolean)}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px', marginRight: '8px' }}>
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                Add to Saved Builds
-              </button>
-            </div>
           </div>
 
-          <div className={`panel shop-panel ${(activeTab === 'shop' || !activeTab) ? 'active' : ''}`}>
+          <div className="panel shop-panel active">
             <Shop 
               shopSearch={shopSearch}
               setShopSearch={setShopSearch}
@@ -516,7 +502,6 @@ export default function App() {
         <nav className="mobile-nav">
           <button id="nav-stats" className={activeTab === 'stats' ? 'active' : ''} onClick={() => setActiveTab('stats')}>STATS</button>
           <button id="nav-build" className={activeTab === 'build' ? 'active' : ''} onClick={() => setActiveTab('build')}>BUILD</button>
-          <button id="nav-shop" className={activeTab === 'shop' ? 'active' : ''} onClick={() => setActiveTab('shop')}>SHOP</button>
         </nav>
       )}
 
@@ -703,6 +688,9 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
           <div className="subtitle">Drag from shop · click to remove</div>
         </div>
         <div className="header-actions">
+          <button className="save-btn" onClick={() => setShowSaveModal(true)} disabled={!champDetail || !equipped.some(Boolean)} title="Save Build">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          </button>
           {equipped.some(Boolean) && (
             <button className="trash-btn" onClick={clearBuild} title="Clear Build">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>

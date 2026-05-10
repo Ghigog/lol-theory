@@ -239,3 +239,49 @@ As a mobile user, I'd like to be able to scroll vertically and access all featur
 - **Estimated complexity**: Medium
 - **Risk assessment**: Altering global scroll properties or container heights might affect desktop layout or fixed panels.
 
+---
+
+## Ticket #10: Stats Screen Mobile Layout Fix
+*Status: Completed*
+### User Story
+As a mobile user, I'd like the character panel to occupy the entire vertical space on the stats screen so that the saved builds section is pushed to the bottom.
+
+- **Context**: On mobile devices, the stats panel appeared squished as a short horizontal panel, leaving empty space below it due to the hidden panel-group occupying the vertical height.
+- **Description**: Fix the CSS flexbox layout on mobile viewports so that the `.panel-group` is hidden when inactive, allowing the active `.stats-panel` to take the full height.
+- **Requirements**:
+    - Update the media query for mobile screens to correctly hide `.panel-group` when it does not have the `.active` class.
+    - Ensure `.champ-picker` and `.champ-details` correctly inherit flex properties to stretch to the available height.
+
+### Acceptance criteria
+- **Given** I am on a mobile device
+- **When** I view the stats tab
+- **Then** the character details/picker should occupy all available vertical space, pushing the saved builds to the bottom of the screen.
+
+- **Estimated complexity**: Low
+- **Risk assessment**: Minimal, isolated to mobile CSS overrides.
+
+---
+
+## Ticket #11: Unified Build and Shop Tab
+*Status: Completed*
+### User Story
+As a user, I'd like the build and shop panels to be combined into a single unified tab so that I don't have to constantly switch back and forth while creating a build.
+
+- **Context**: On mobile, the "Build" and "Shop" were on separate tabs, requiring extra taps to pick items and then view the inventory.
+- **Description**: Merge the build and shop tabs into one view on mobile. The inventory appears at the top (with all 7 slots squeezed into one row), and the shop is placed directly below it. The dedicated "Add to Saved Builds" text button on mobile is replaced by a compact save icon next to the clear button.
+- **Requirements**:
+    - Remove the mobile "Shop" tab from the navigation.
+    - Render both `.build-panel` and `.shop-panel` inside the `.panel-group` when the "Build" tab is active.
+    - Remove the `.mobile-save-build-container` and its associated CSS.
+    - Add a `.save-btn` to the `inventory-header` next to the `.trash-btn`.
+    - Update `.inventory-grid` on mobile to use `repeat(7, 1fr)` with a small gap instead of `repeat(3, 1fr)`.
+
+### Acceptance criteria
+- **Given** I am on a mobile device
+- **When** I navigate to the Build tab
+- **Then** I should see the 7 item slots in a single row at the top, and the item shop immediately below it.
+- **When** I look at the item inventory header
+- **Then** I should see a save icon and a trash icon instead of a large text button at the bottom of the panel.
+
+- **Estimated complexity**: Low
+- **Risk assessment**: Mobile layout adjustments might look cramped on very narrow screens.
