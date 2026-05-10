@@ -173,21 +173,27 @@ export default function App() {
     })();
   }, []);
 
+  const fetchMerakiChampion = async (c) => {
+    let url = `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`;
+    let res = await fetch(url).catch(() => null);
+    // Fallback proxy to bypass adblockers blocking 'analytics' domains
+    if (!res || !res.ok) {
+      res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`).catch(() => null);
+    }
+    if (!res || !res.ok) throw new Error("Not Found");
+    return res.json();
+  };
+
   // ── Champion Pick ───────────────────────────────────────────────────────────
   const pickChamp = async (c) => {
     if (!ver) return;
     try {
-      const res = await fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`);
-      if (!res.ok) {
-        alert("Meraki Analytics data not available for this champion yet.");
-        return;
-      }
-      const d = await res.json();
+      const d = await fetchMerakiChampion(c);
       setChampDetail(d);
       setShowPicker(false);
     } catch (e) {
       console.error(e);
-      alert("Failed to fetch champion data.");
+      alert("Failed to fetch champion data. Please check your connection or try another champion.");
     }
   };
 
@@ -278,6 +284,7 @@ export default function App() {
 
   // ── Slot Actions ─────────────────────────────────────────────────────────────
   const addItem = (item) => {
+    setTooltip(null);
     const idx = equipped.findIndex(e => !e);
     if (idx < 0) return;
     const next = [...equipped];
@@ -328,12 +335,9 @@ export default function App() {
     const c = allChamps[b.champId];
     if (c) {
       try {
-        const res = await fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`);
-        if (res.ok) {
-          const d = await res.json();
-          setChampDetail(d);
-          setShowPicker(false);
-        }
+        const d = await fetchMerakiChampion(c);
+        setChampDetail(d);
+        setShowPicker(false);
       } catch (e) {
         console.error("Failed to load hydrated champion from Meraki", e);
       }
@@ -522,8 +526,8 @@ export default function App() {
 
       {activeTab && (
         <nav className="mobile-nav">
-          <button id="nav-stats" className={activeTab === 'stats' ? 'active' : ''} onClick={() => setActiveTab('stats')}>STATS</button>
-          <button id="nav-build" className={activeTab === 'build' ? 'active' : ''} onClick={() => setActiveTab('build')}>BUILD</button>
+          <button id="nav-stats" className={activeTab === 'stats' ? 'active' : ''} onClick={() => { setActiveTab('stats'); setTooltip(null); }}>STATS</button>
+          <button id="nav-build" className={activeTab === 'build' ? 'active' : ''} onClick={() => { setActiveTab('build'); setTooltip(null); }}>BUILD</button>
         </nav>
       )}
 
