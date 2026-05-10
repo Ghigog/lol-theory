@@ -109,12 +109,14 @@ export default function App() {
   const [allChamps,     setAllChamps]   = useState({});
   const [champSearch,   setChampSearch] = useState("");
   const [champDetail,   setChampDetail] = useState(null);
+  const [champAbilities,setChampAbilities] = useState(null); // async-loaded from Meraki
   const [allItems,      setAllItems]    = useState({});
   const [level,         setLevel]       = useState(13);
   const [equipped,      setEquipped]    = useState(Array(7).fill(null));
   const [shopSearch,    setShopSearch]  = useState("");
   const [shopCat,       setShopCat]     = useState("all");
   const [tooltip,       setTooltip]     = useState(null);
+  const [tooltipAnchor, setTooltipAnchor] = useState(null); // DOM ref for click-outside
   const [mpos,          setMpos]        = useState({ x: 0, y: 0 });
   const [loading,       setLoading]     = useState(true);
   const [loadErr,       setLoadErr]     = useState(null);
@@ -153,6 +155,18 @@ export default function App() {
     localStorage.setItem("tf_builds", JSON.stringify(savedBuilds));
   }, [savedBuilds]);
 
+  // ── Click-outside to dismiss tooltip ────────────────────────────────────────
+  useEffect(() => {
+    if (!tooltip) return;
+    const handler = (e) => {
+      if (tooltipAnchor && tooltipAnchor.contains(e.target)) return;
+      setTooltip(null);
+      setTooltipAnchor(null);
+    };
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
+  }, [tooltip, tooltipAnchor]);
+
   // ── Fetch Data ──────────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
@@ -173,27 +187,26 @@ export default function App() {
     })();
   }, []);
 
-  const fetchMerakiChampion = async (c) => {
-    let url = `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${c.id}.json`;
-    let res = await fetch(url).catch(() => null);
-    // Fallback proxy to bypass adblockers blocking 'analytics' domains
-    if (!res || !res.ok) {
-      res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`).catch(() => null);
-    }
-    if (!res || !res.ok) throw new Error("Not Found");
-    return res.json();
+  // ── Async-load Meraki abilities (non-blocking) ───────────────────────────────
+  const loadMerakiAbilities = (champId) => {
+    setChampAbilities(null);
+    fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${champId}.json`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.abilities) setChampAbilities(d.abilities); })
+      .catch(() => {}); // silent — abilities are a bonus
   };
 
-  // ── Champion Pick ───────────────────────────────────────────────────────────
+  // ── Champion Pick (DDragon = fast; Meraki abilities = async background) ──────
   const pickChamp = async (c) => {
     if (!ver) return;
     try {
-      const d = await fetchMerakiChampion(c);
-      setChampDetail(d);
+      const d = await fetch(`${DDR}/cdn/${ver}/data/en_US/champion/${c.id}.json`).then(r => r.json());
+      setChampDetail(d.data[c.id]);
       setShowPicker(false);
+      loadMerakiAbilities(c.id);
     } catch (e) {
       console.error(e);
-      alert("Failed to fetch champion data. Please check your connection or try another champion.");
+      alert("Failed to fetch champion data.");
     }
   };
 
@@ -201,19 +214,37 @@ export default function App() {
   const stats = useMemo(() => {
     if (!champDetail) return null;
     const s = champDetail.stats;
+    // DDragon schema uses flat keys (e.g. s.hp, s.armor)
+    // Meraki schema uses nested objects (s.health.flat) — detect which we have
+    const isM = s && typeof s.hp === 'undefined';
     const n = level - 1;
 
-    const base = {
-      hp:          growStat(s?.health?.flat ?? 0, s?.health?.perLevel ?? 0, level),
-      hpregen:     growStat(s?.healthRegen?.flat ?? 0, s?.healthRegen?.perLevel ?? 0, level),
-      mp:          growStat(s?.mana?.flat ?? 0, s?.mana?.perLevel ?? 0, level),
-      mpregen:     growStat(s?.manaRegen?.flat ?? 0, s?.manaRegen?.perLevel ?? 0, level),
-      ad:          growStat(s?.attackDamage?.flat ?? 0, s?.attackDamage?.perLevel ?? 0, level),
-      armor:       growStat(s?.armor?.flat ?? 0, s?.armor?.perLevel ?? 0, level),
-      mr:          growStat(s?.magicResistance?.flat ?? 0, s?.magicResistance?.perLevel ?? 0, level),
+    const g = (flat, perLvl) => growStat(flat ?? 0, perLvl ?? 0, level);
+    const base = isM ? {
+      // Meraki nested schema
+      hp:          g(s?.health?.flat, s?.health?.perLevel),
+      hpregen:     g(s?.healthRegen?.flat, s?.healthRegen?.perLevel),
+      mp:          g(s?.mana?.flat, s?.mana?.perLevel),
+      mpregen:     g(s?.manaRegen?.flat, s?.manaRegen?.perLevel),
+      ad:          g(s?.attackDamage?.flat, s?.attackDamage?.perLevel),
+      armor:       g(s?.armor?.flat, s?.armor?.perLevel),
+      mr:          g(s?.magicResistance?.flat, s?.magicResistance?.perLevel),
       attackspeed: (s?.attackSpeed?.flat ?? 0.625) * (1 + ((s?.attackSpeed?.perLevel ?? 0) * n) / 100),
       movespeed:   s?.movespeed?.flat ?? 330,
       range:       s?.attackRange?.flat ?? 125,
+      ap: 0, critchance: 0, lifesteal: 0,
+    } : {
+      // DDragon flat schema
+      hp:          g(s?.hp, s?.hpperlevel),
+      hpregen:     g(s?.hpregen, s?.hpregenperlevel),
+      mp:          g(s?.mp, s?.mpperlevel),
+      mpregen:     g(s?.mpregen, s?.mpregenperlevel),
+      ad:          g(s?.attackdamage, s?.attackdamageperlevel),
+      armor:       g(s?.armor, s?.armorperlevel),
+      mr:          g(s?.spellblock, s?.spellblockperlevel),
+      attackspeed: (s?.attackspeed ?? 0.625) * (1 + ((s?.attackspeedperlevel ?? 0) * n) / 100),
+      movespeed:   s?.movespeed ?? 330,
+      range:       s?.attackrange ?? 125,
       ap: 0, critchance: 0, lifesteal: 0,
     };
 
@@ -316,6 +347,7 @@ export default function App() {
   const saveToSlot = (idx) => {
     if (!champDetail) return;
     const newBuilds = [...savedBuilds];
+    // Use DDragon string id (champDetail.id is e.g. "Garen")
     newBuilds[idx] = {
       champId: champDetail.key,
       champName: champDetail.name,
@@ -335,11 +367,12 @@ export default function App() {
     const c = allChamps[b.champId];
     if (c) {
       try {
-        const d = await fetchMerakiChampion(c);
-        setChampDetail(d);
+        const d = await fetch(`${DDR}/cdn/${ver}/data/en_US/champion/${c.id}.json`).then(r => r.json());
+        setChampDetail(d.data[c.id]);
         setShowPicker(false);
+        loadMerakiAbilities(c.id);
       } catch (e) {
-        console.error("Failed to load hydrated champion from Meraki", e);
+        console.error("Failed to load champion", e);
       }
     }
     
@@ -452,6 +485,7 @@ export default function App() {
           ) : (
             <ChampionDetails 
               champDetail={champDetail}
+              champAbilities={champAbilities}
               stats={stats}
               level={level}
               setLevel={setLevel}
@@ -498,7 +532,9 @@ export default function App() {
               onDragEnd={onDragEnd}
               removeItem={removeItem}
               setTooltip={setTooltip}
+              setTooltipAnchor={setTooltipAnchor}
               setMpos={setMpos}
+              tooltip={tooltip}
               dragOverSlot={dragOverSlot}
               ver={ver}
               champDetail={champDetail}
@@ -517,7 +553,9 @@ export default function App() {
               onShopDragStart={onShopDragStart}
               onDragEnd={onDragEnd}
               setTooltip={setTooltip}
+              setTooltipAnchor={setTooltipAnchor}
               setMpos={setMpos}
+              tooltip={tooltip}
               ver={ver}
             />
           </div>
@@ -624,48 +662,161 @@ function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp
   );
 }
 
-function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, ver, savedBuilds, loadFromSlot, setConfirmDelete }) {
-  const formatResource = (res) => {
-    if (!res || res === "NONE") return "";
-    return res.replace(/_/g, ' ').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase());
+// Renders a single modifier chip inline (e.g. "30 / 60 / 90 + 50% AD (+35)")
+function renderModifier(mod, stats) {
+  if (!mod) return null;
+  const unit = (mod.units || [])[0] || "";
+  const vals = mod.values || [];
+  const baseStr = vals.map(v => typeof v === 'number' ? (Number.isInteger(v) ? v : +v.toFixed(1)) : v).join(" / ");
+  if (unit === "") return baseStr;
+
+  let statVal = 0;
+  const u = unit.toLowerCase();
+  if (u.includes("% bonus ad"))          statVal = (stats?.total?.ad||0) - (stats?.base?.ad||0);
+  else if (u.includes("% ad"))           statVal = stats?.total?.ad || 0;
+  else if (u.includes("% ap") || u.includes("% ability power")) statVal = stats?.total?.ap || 0;
+  else if (u.includes("% bonus health")) statVal = (stats?.total?.hp||0) - (stats?.base?.hp||0);
+  else if (u.includes("% health") || u.includes("% max health")) statVal = stats?.total?.hp || 0;
+  else if (u.includes("% armor"))        statVal = stats?.total?.armor || 0;
+  else if (u.includes("% mr") || u.includes("% magic resistance")) statVal = stats?.total?.mr || 0;
+
+  if (statVal > 0) {
+    const calc = vals.map(v => typeof v === 'number' ? Math.round(statVal * (v / 100)) : 0);
+    return (
+      <span className="dynamic-scaling">
+        {baseStr} {unit}
+        <span className="calc-result"> (+{calc.join(" / ")})</span>
+      </span>
+    );
+  }
+  return `${baseStr} ${unit}`;
+}
+
+// Compact ability row — shows icon + key + name + scaling chips by default.
+// Full description is revealed on hover (desktop) or tap (mobile).
+function AbilityRow({ abilityKey, name, iconSrc, effects, stats }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  // Collect only leveling entries that have dynamic modifiers
+  const scalings = (effects || []).flatMap(eff =>
+    (eff.leveling || []).map(lvl => ({ attr: lvl.attribute, mods: lvl.modifiers || [] }))
+  ).filter(s => s.mods.length);
+
+  // Toggle on tap; close when clicking outside
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
+  }, [open]);
+
+  return (
+    <div
+      ref={ref}
+      className={`ability-row ${open ? 'open' : ''}`}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onPointerDown={e => { e.stopPropagation(); setOpen(o => !o); }}
+    >
+      <div className="ability-row-main">
+        <img src={iconSrc} alt={name} className="ability-img" />
+        <div className="ability-key-badge">{abilityKey === "P" ? "P" : abilityKey}</div>
+        <div className="ability-name">{name}</div>
+        {scalings.length > 0 && (
+          <div className="ability-chips">
+            {scalings.map((s, i) => (
+              <span key={i} className="ability-chip">
+                <span className="chip-attr">{s.attr}:</span>
+                {s.mods.map((m, j) => <span key={j}>{renderModifier(m, stats)}</span>)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      {open && (
+        <div className="ability-desc-panel">
+          {(effects || []).map((eff, i) => (
+            <div key={i}>
+              {eff.description && <div dangerouslySetInnerHTML={{ __html: formatDescription(eff.description) }} />}
+              {(eff.leveling || []).length > 0 && (
+                <div className="ability-scaling">
+                  {eff.leveling.map((lvl, j) => (
+                    <div key={j} className="scaling-row">
+                      <span className="scaling-attr">{lvl.attribute}:</span>
+                      {(lvl.modifiers || []).map((mod, k) => (
+                        <span key={k} className="scaling-val">{renderModifier(mod, stats)}</span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, setShowPicker, ver, savedBuilds, loadFromSlot, setConfirmDelete }) {
+  // DDragon: partype (e.g. "Mana"), Meraki: resource (e.g. "MANA")
+  const partype = champDetail.partype || "";
+  const hasRes  = partype && partype !== "None";
+
+  const formatResLabel = (base, sub) => {
+    if (!hasRes) return null;
+    return sub ? `${partype} Regen` : partype;
   };
 
-  const renderModifier = (mod, stats) => {
-    if (!mod) return null;
-    const unit = (mod.units || [])[0] || "";
-    const baseStr = (mod.values || []).map(v => typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(1)) : String(v)).join(" / ");
+  // Dynamic bar color per resource type
+  const resourceBarColor = (cfg) => {
+    if (!cfg.resource) return cfg.color;
+    if (partype === "Mana") return cfg.color;
+    if (partype === "Energy") return cfg.sub ? "#EAB308" : "#FACC15";
+    return cfg.sub ? "#DC2626" : "#EF4444";
+  };
 
-    if (unit === "") return baseStr;
-    
-    let statVal = 0;
-    const uLower = unit.toLowerCase();
-    if (uLower.includes("% bonus ad") || uLower.includes("% bonus attack damage")) statVal = (stats?.total?.ad || 0) - (stats?.base?.ad || 0);
-    else if (uLower.includes("% ad") || uLower.includes("% attack damage")) statVal = stats?.total?.ad || 0;
-    else if (uLower.includes("% ap") || uLower.includes("% ability power")) statVal = stats?.total?.ap || 0;
-    else if (uLower.includes("% bonus health")) statVal = (stats?.total?.hp || 0) - (stats?.base?.hp || 0);
-    else if (uLower.includes("% health") || uLower.includes("% max health")) statVal = stats?.total?.hp || 0;
-    else if (uLower.includes("% armor")) statVal = stats?.total?.armor || 0;
-    else if (uLower.includes("% mr") || uLower.includes("% magic resistance")) statVal = stats?.total?.mr || 0;
-
-    if (statVal > 0) {
-      const calculated = (mod.values || []).map(v => typeof v === 'number' ? Math.round(statVal * (v / 100)) : 0);
-      return (
-        <span className="dynamic-scaling">
-          {baseStr} {unit}
-          <span className="calc-result" title="Dynamically calculated from stats"> (+{calculated.join(" / ")})</span>
-        </span>
-      );
+  // Build abilities list from Meraki (preferred) or DDragon fallback
+  const abilityRows = useMemo(() => {
+    const rows = [];
+    if (champAbilities) {
+      // Meraki: icon URLs are CDN links
+      ["P","Q","W","E","R"].forEach(key => {
+        const arr = champAbilities[key];
+        if (!arr || arr.length === 0) return;
+        const ab = arr[0];
+        rows.push({ key, name: ab.name, iconSrc: ab.icon, effects: ab.effects || [] });
+      });
+    } else {
+      // DDragon fallback
+      if (champDetail.passive) {
+        rows.push({
+          key: "P",
+          name: champDetail.passive.name,
+          iconSrc: `${DDR}/cdn/${ver}/img/passive/${champDetail.passive.image.full}`,
+          effects: [{ description: champDetail.passive.description, leveling: [] }],
+        });
+      }
+      (champDetail.spells || []).forEach((spell, idx) => {
+        const keys = ["Q","W","E","R"];
+        rows.push({
+          key: keys[idx],
+          name: spell.name,
+          iconSrc: `${DDR}/cdn/${ver}/img/spell/${spell.image.full}`,
+          effects: [{ description: spell.tooltip || spell.description, leveling: [] }],
+        });
+      });
     }
-
-    return `${baseStr} ${unit}`;
-  };
+    return rows;
+  }, [champAbilities, champDetail, ver]);
 
   return (
     <div className="champ-details">
       <div className="champ-header-card">
         <div className="champ-info">
           <div className="champ-avatar-wrapper" onClick={() => setShowPicker(true)} title="Change Champion">
-            <img src={`${DDR}/cdn/${ver}/img/champion/${champDetail.key}.png`} alt={champDetail.name} className="champ-avatar" />
+            <img src={`${DDR}/cdn/${ver}/img/champion/${champDetail.image.full}`} alt={champDetail.name} className="champ-avatar" />
             <div className="champ-avatar-overlay">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
@@ -676,57 +827,37 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
             <div className="champ-name">{champDetail.name}</div>
             <div className="champ-title">{champDetail.title}</div>
             <div className="champ-tags">
-              {champDetail.roles?.map(t => <span key={t} className="tag">{t}</span>)}
+              {(champDetail.tags || []).map(t => <span key={t} className="tag">{t}</span>)}
             </div>
           </div>
         </div>
 
         <div className="level-control">
           <span className="level-label">LEVEL</span>
-          <input
-            type="range" min={1} max={18} value={level}
-            onChange={e => setLevel(+e.target.value)}
-          />
+          <input type="range" min={1} max={18} value={level} onChange={e => setLevel(+e.target.value)} />
           <div className="level-badge">{level}</div>
         </div>
       </div>
 
       <div className="stat-bars">
         {stats && STATS.map(cfg => {
-          const hasRes = champDetail.resource && champDetail.resource !== "NONE";
           if (cfg.resource && !hasRes) return null;
-
           const total = stats.total[cfg.k] ?? 0;
           const base  = stats.base[cfg.k]  ?? 0;
           const bonus = total - base;
           if (cfg.itemOnly && bonus < 0.001) return null;
 
-          const resName = formatResource(champDetail.resource);
-          const label = cfg.resource 
-            ? (cfg.sub ? `${resName} Regen` : resName)
-            : cfg.label;
-
-          // Dynamic colors for non-mana resources
-          let barColor = cfg.color;
-          if (cfg.resource && champDetail.resource !== "MANA") {
-            if (champDetail.resource === "ENERGY") {
-              barColor = cfg.sub ? "#EAB308" : "#FACC15";
-            } else {
-              // Fury, Blood Well, Heat, etc.
-              barColor = cfg.sub ? "#DC2626" : "#EF4444";
-            }
-          }
-
-          const barMax  = cfg.max;
-          const totalPct  = Math.min(total / barMax, 1) * 100;
-          const basePct   = total > 0 ? (base / total) * totalPct : 0;
-          const bonusPct  = totalPct - basePct;
+          const label = cfg.resource ? formatResLabel(partype, cfg.sub) : cfg.label;
+          const barColor = resourceBarColor(cfg);
+          const totalPct = Math.min(total / cfg.max, 1) * 100;
+          const basePct  = total > 0 ? (base / total) * totalPct : 0;
+          const bonusPct = totalPct - basePct;
 
           return (
             <div key={cfg.k} className={`stat-row ${cfg.sub ? 'sub' : ''}`}>
               <div className="stat-label">{label}</div>
               <div className="stat-bar-container">
-                <div className="stat-bar-fill" style={{ width:`${basePct}%`, background:barColor, opacity:0.75 }} />
+                <div className="stat-bar-fill"  style={{ width:`${basePct}%`, background:barColor, opacity:0.75 }} />
                 <div className="stat-bar-bonus" style={{ width:`${bonusPct}%`, background:`var(--c-gold)` }} />
               </div>
               <div className="stat-value">
@@ -738,51 +869,30 @@ function ChampionDetails({ champDetail, stats, level, setLevel, setShowPicker, v
         })}
       </div>
 
-      <div className="abilities-section">
-        <div className="panel-title">Abilities</div>
-        <div className="ability-list">
-          {["P", "Q", "W", "E", "R"].map(key => {
-            const abilityArray = champDetail.abilities?.[key];
-            if (!abilityArray || abilityArray.length === 0) return null;
-            const ability = abilityArray[0];
-            return (
-              <div key={key} className="ability-card">
-                <img src={ability.icon} alt={ability.name} className="ability-img" />
-                <div className="ability-info">
-                  <div className="ability-header">
-                    <div className="ability-name">{ability.name}</div>
-                    <div className="ability-key">{key === "P" ? "Passive" : key}</div>
-                  </div>
-                  <div className="ability-desc">
-                    {(ability.effects || []).map((eff, i) => (
-                      <div key={i} className="ability-effect-block">
-                        <div dangerouslySetInnerHTML={{ __html: formatDescription(eff.description) }} />
-                        {eff.leveling && eff.leveling.length > 0 && (
-                          <div className="ability-scaling">
-                            {eff.leveling.map((lvl, j) => (
-                              <div key={j} className="scaling-row">
-                                <span className="scaling-attr">{lvl.attribute}:</span>
-                                {(lvl.modifiers || []).map((mod, k) => (
-                                  <span key={k} className="scaling-val">{renderModifier(mod, stats)}</span>
-                                ))}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {abilityRows.length > 0 && (
+        <div className="abilities-section">
+          <div className="panel-title">Abilities
+            {!champAbilities && <span className="abilities-loading"> · loading details…</span>}
+          </div>
+          <div className="ability-list">
+            {abilityRows.map(row => (
+              <AbilityRow
+                key={row.key}
+                abilityKey={row.key}
+                name={row.name}
+                iconSrc={row.iconSrc}
+                effects={row.effects}
+                stats={stats}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setMpos, dragOverSlot, ver, champDetail, setShowSaveModal }) {
+function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setTooltipAnchor, setMpos, tooltip, dragOverSlot, ver, champDetail, setShowSaveModal }) {
   return (
     <div className="inventory-panel">
       <div className="panel-title inventory-header">
@@ -802,7 +912,7 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
         </div>
       </div>
 
-      <div className="inventory-grid" onMouseLeave={() => setTooltip(null)}>
+      <div className="inventory-grid">
         {equipped.map((item, idx) => (
           <div
             key={idx}
@@ -813,9 +923,18 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
             onDrop={e => onSlotDrop(e, idx)}
             onDragLeave={() => {}}
             onDragEnd={onDragEnd}
-            onClick={() => item && removeItem(idx)}
-            onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }) : undefined}
-            onMouseLeave={() => setTooltip(null)}
+            onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }) : undefined}
+            onMouseLeave={item ? () => { setTooltip(null); setTooltipAnchor(null); } : undefined}
+            onPointerDown={e => {
+              if (e.pointerType !== 'mouse') {
+                e.stopPropagation();
+                if (item) {
+                  if (tooltip?.itemId === item.itemId) { setTooltip(null); setTooltipAnchor(null); }
+                  else { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }
+                }
+              }
+            }}
+            onClick={e => { if (item && (e.pointerType === 'mouse' || e.detail === 0)) removeItem(idx); }}
           >
             {item ? (
               <>
@@ -833,7 +952,7 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
   );
 }
 
-function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addItem, onShopDragStart, onDragEnd, setTooltip, setMpos, ver }) {
+function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addItem, onShopDragStart, onDragEnd, setTooltip, setTooltipAnchor, setMpos, tooltip, ver }) {
   const [collapsed, setCollapsed] = useState({});
 
   const toggleGroup = (grp) => {
@@ -892,7 +1011,7 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
         ))}
       </div>
 
-      <div className="shop-scroll-area" onMouseLeave={() => setTooltip(null)}>
+      <div className="shop-scroll-area">
         {ORDER.map(grp => {
           const items = groupedItems[grp];
           if (!items || items.length === 0) return null;
@@ -916,10 +1035,17 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
                       draggable
                       onDragStart={e => onShopDragStart(e, item)}
                       onDragEnd={onDragEnd}
-                      onClick={() => addItem(item)}
-                      onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); }}
-                      onMouseLeave={() => setTooltip(null)}
+                      onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }}
+                      onMouseLeave={() => { setTooltip(null); setTooltipAnchor(null); }}
                       onMouseMove={e => setMpos({ x:e.clientX, y:e.clientY })}
+                      onPointerDown={e => {
+                        if (e.pointerType !== 'mouse') {
+                          e.stopPropagation();
+                          if (tooltip?.itemId === item.itemId) { setTooltip(null); setTooltipAnchor(null); }
+                          else { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }
+                        }
+                      }}
+                      onClick={(e) => { if (e.pointerType === 'mouse' || e.detail === 0) addItem(item); }}
                     >
                       <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} />
                       <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
