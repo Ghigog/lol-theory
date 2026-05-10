@@ -190,10 +190,12 @@ export default function App() {
   // ── Async-load Meraki abilities (non-blocking) ───────────────────────────────
   const loadMerakiAbilities = (champId) => {
     setChampAbilities(null);
-    fetch(`https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${champId}.json`)
+    const targetUrl = `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions/${champId}.json`;
+    // Route through a reliable CORS proxy as Meraki CDN may block direct browser requests
+    fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.abilities) setChampAbilities(d.abilities); })
-      .catch(() => {}); // silent — abilities are a bonus
+      .catch((e) => { console.error("Failed to fetch Meraki abilities:", e); });
   };
 
   // ── Champion Pick (DDragon = fast; Meraki abilities = async background) ──────

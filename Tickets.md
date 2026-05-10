@@ -36,6 +36,7 @@ As a theorycrafter, I'd like to see the damage and scaling of champion abilities
     - Parse scaling coefficients from Meraki's `abilities` object (which maps to Q, W, E, R).
     - Calculate "final" damage values using current `total` stats and inject them into the ability tooltips.
     - Ensure backwards compatibility or refactor the items and stat calculations if necessary.
+    - **Update**: Route requests to Meraki Analytics through a public CORS proxy (`api.allorigins.win`) to resolve silent fetch failures caused by the CDN's missing cross-origin headers.
 
 ### Acceptance criteria
 - **Given** I have a champion selected and items equipped
