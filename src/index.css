@@ -50,6 +50,20 @@
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in specific inputs if needed */
+input, textarea {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 body {
