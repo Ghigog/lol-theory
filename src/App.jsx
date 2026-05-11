@@ -737,9 +737,11 @@ function AbilityRow({ abilityKey, name, iconSrc, effects, stats, champLevel }) {
       onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
     >
       <div className="ability-row-main">
-        <img src={iconSrc} alt={name} className="ability-img" />
-        <div className="ability-key-badge">{abilityKey === "P" ? "P" : abilityKey}</div>
-        <div className="ability-name">{name}</div>
+        <div className="ability-header">
+          <img src={iconSrc} alt={name} className="ability-img" />
+          <div className="ability-key-badge">{abilityKey === "P" ? "P" : abilityKey}</div>
+          <div className="ability-name">{name}</div>
+        </div>
         {scalings.length > 0 && (
           <div className="ability-chips">
             {scalings.map((s, i) => (
