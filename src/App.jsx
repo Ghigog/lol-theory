@@ -665,11 +665,26 @@ function ChampionPicker({ champSearch, setChampSearch, filteredChamps, pickChamp
 }
 
 // Renders a single modifier chip inline (e.g. "30 / 60 / 90 + 50% AD (+35)")
-function renderModifier(mod, stats) {
+function renderModifier(mod, stats, champLevel = 1, abilityKey = 'Q') {
   if (!mod) return null;
   const unit = (mod.units || [])[0] || "";
   const vals = mod.values || [];
-  const baseStr = vals.map(v => typeof v === 'number' ? (Number.isInteger(v) ? v : +v.toFixed(1)) : v).join(" / ");
+
+  let rankIdx = 0;
+  if (vals.length > 1) {
+    if (abilityKey === 'R') {
+      if (champLevel < 11) rankIdx = 0;
+      else if (champLevel < 16) rankIdx = 1;
+      else rankIdx = 2;
+      rankIdx = Math.min(rankIdx, vals.length - 1);
+    } else {
+      rankIdx = Math.min(vals.length - 1, Math.max(0, Math.ceil(champLevel / 2) - 1));
+    }
+  }
+
+  const v = vals[rankIdx] !== undefined ? vals[rankIdx] : vals[0];
+  const baseStr = typeof v === 'number' ? (Number.isInteger(v) ? v : +v.toFixed(1)) : v;
+
   if (unit === "") return baseStr;
 
   let statVal = 0;
@@ -683,11 +698,11 @@ function renderModifier(mod, stats) {
   else if (u.includes("% mr") || u.includes("% magic resistance")) statVal = stats?.total?.mr || 0;
 
   if (statVal > 0) {
-    const calc = vals.map(v => typeof v === 'number' ? Math.round(statVal * (v / 100)) : 0);
+    const calcVal = typeof v === 'number' ? Math.round(statVal * (v / 100)) : 0;
     return (
       <span className="dynamic-scaling">
         {baseStr} {unit}
-        <span className="calc-result"> (+{calc.join(" / ")})</span>
+        <span className="calc-result"> (+{calcVal})</span>
       </span>
     );
   }
@@ -696,7 +711,7 @@ function renderModifier(mod, stats) {
 
 // Compact ability row — shows icon + key + name + scaling chips by default.
 // Full description is revealed on hover (desktop) or tap (mobile).
-function AbilityRow({ abilityKey, name, iconSrc, effects, stats }) {
+function AbilityRow({ abilityKey, name, iconSrc, effects, stats, champLevel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -717,7 +732,7 @@ function AbilityRow({ abilityKey, name, iconSrc, effects, stats }) {
     <div
       ref={ref}
       className={`ability-row ${open ? 'open' : ''}`}
-      onMouseEnter={() => setOpen(true)}
+      onMouseEnter={() => { if (window.matchMedia("(hover: hover)").matches) setOpen(true); }}
       onMouseLeave={() => setOpen(false)}
       onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
     >
@@ -730,7 +745,7 @@ function AbilityRow({ abilityKey, name, iconSrc, effects, stats }) {
             {scalings.map((s, i) => (
               <span key={i} className="ability-chip">
                 <span className="chip-attr">{s.attr}:</span>
-                {s.mods.map((m, j) => <span key={j}>{renderModifier(m, stats)}</span>)}
+                {s.mods.map((m, j) => <span key={j}>{renderModifier(m, stats, champLevel, abilityKey)}</span>)}
               </span>
             ))}
           </div>
@@ -747,7 +762,7 @@ function AbilityRow({ abilityKey, name, iconSrc, effects, stats }) {
                     <div key={j} className="scaling-row">
                       <span className="scaling-attr">{lvl.attribute}:</span>
                       {(lvl.modifiers || []).map((mod, k) => (
-                        <span key={k} className="scaling-val">{renderModifier(mod, stats)}</span>
+                        <span key={k} className="scaling-val">{renderModifier(mod, stats, champLevel, abilityKey)}</span>
                       ))}
                     </div>
                   ))}
@@ -885,6 +900,7 @@ function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, 
                 iconSrc={row.iconSrc}
                 effects={row.effects}
                 stats={stats}
+                champLevel={level}
               />
             ))}
           </div>
