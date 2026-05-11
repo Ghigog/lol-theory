@@ -1009,6 +1009,10 @@ input[type=range]::-webkit-slider-thumb {
   border-radius: var(--radius);
   animation: slideUp 0.3s ease-out;
   box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 .modal-header {
@@ -1038,6 +1042,9 @@ input[type=range]::-webkit-slider-thumb {
 
 .modal-body {
   padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .save-slot-row {
@@ -1262,10 +1269,17 @@ input[type=range]::-webkit-slider-thumb {
   box-shadow: 0 0 10px var(--c-rune, #EC4899);
 }
 
+/* Rune-specific modal sizing */
 .rune-modal-body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 320px;
+}
+
+/* Ensure the modal content is wider for runes if needed */
+.app-container:has(.rune-modal-body) .modal-content {
+  max-width: 500px;
 }
 
 .rune-section {
