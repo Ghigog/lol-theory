@@ -79,6 +79,24 @@ const SHOP_CATS = [
   { id: "Boots",          label: "Boots" },
 ];
 
+const STAT_SHARDS = {
+  row1: [
+    { id: "r1_ad", label: "+9 Adaptive Force", stat: "adaptive", val: 9, icon: "StatMods/StatModsAdaptiveForceIcon.png" },
+    { id: "r1_as", label: "+10% Attack Speed", stat: "attackspeed", val: 0.10, icon: "StatMods/StatModsAttackSpeedIcon.png" },
+    { id: "r1_ah", label: "+8 Ability Haste", stat: "abilityhaste", val: 8, icon: "StatMods/StatModsCDRScalingIcon.png" }
+  ],
+  row2: [
+    { id: "r2_ad", label: "+9 Adaptive Force", stat: "adaptive", val: 9, icon: "StatMods/StatModsAdaptiveForceIcon.png" },
+    { id: "r2_ms", label: "+2% Move Speed", stat: "movespeed_pct", val: 0.02, icon: "StatMods/StatModsMovementSpeedIcon.png" },
+    { id: "r2_hp", label: "+10-180 Scaling Health", stat: "health_scaling", val: [10, 180], icon: "StatMods/StatModsHealthScalingIcon.png" }
+  ],
+  row3: [
+    { id: "r3_hp", label: "+65 Flat Health", stat: "health", val: 65, icon: "StatMods/StatModsHealthPlusIcon.png" },
+    { id: "r3_tn", label: "+10% Tenacity", stat: "tenacity", val: 0.10, icon: "StatMods/StatModsTenacityIcon.png" },
+    { id: "r3_hs", label: "+10-180 Scaling Health", stat: "health_scaling", val: [10, 180], icon: "StatMods/StatModsHealthScalingIcon.png" }
+  ]
+};
+
 const ITEM_STAT_FMT = {
   FlatHPPoolMod:         v => ["Health",          `+${Math.round(v)}`],
   FlatMPPoolMod:         v => ["Mana",             `+${Math.round(v)}`],
@@ -107,12 +125,20 @@ const getStatLabel = (key, val) => {
 export default function App() {
   const [ver,           setVer]         = useState(null);
   const [allChamps,     setAllChamps]   = useState({});
+  const [allRunes,      setAllRunes]    = useState([]);
   const [champSearch,   setChampSearch] = useState("");
   const [champDetail,   setChampDetail] = useState(null);
   const [champAbilities,setChampAbilities] = useState(null); // async-loaded from Meraki
   const [allItems,      setAllItems]    = useState({});
   const [level,         setLevel]       = useState(13);
   const [equipped,      setEquipped]    = useState(Array(7).fill(null));
+  const [selectedRunes, setSelectedRunes] = useState({
+    primary: null, secondary: null,
+    keystone: null, p1: null, p2: null, p3: null,
+    s1: null, s2: null,
+    shard1: "r1_ad", shard2: "r2_ad", shard3: "r3_hp"
+  });
+  const [showRuneModal, setShowRuneModal] = useState(false);
   const [shopSearch,    setShopSearch]  = useState("");
   const [shopCat,       setShopCat]     = useState("all");
   const [tooltip,       setTooltip]     = useState(null);
@@ -173,12 +199,14 @@ export default function App() {
       try {
         const [v] = await fetch(`${DDR}/api/versions.json`).then(r => r.json());
         setVer(v);
-        const [cd, id] = await Promise.all([
+        const [cd, id, runes] = await Promise.all([
           fetch(`${DDR}/cdn/${v}/data/en_US/champion.json`).then(r => r.json()),
           fetch(`${DDR}/cdn/${v}/data/en_US/item.json`).then(r => r.json()),
+          fetch(`${DDR}/cdn/${v}/data/en_US/runesReforged.json`).then(r => r.json()),
         ]);
         setAllChamps(cd.data);
         setAllItems(id.data);
+        setAllRunes(runes);
       } catch (e) {
         setLoadErr(String(e));
       } finally {
@@ -251,6 +279,30 @@ export default function App() {
     };
 
     const bon = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, moveSpeedPct:0, range:0 };
+    const rBon = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, moveSpeedPct:0, range:0, adaptive:0 };
+
+    const addShard = (shardId, rowKey) => {
+      if (!shardId) return;
+      const shardDef = STAT_SHARDS[rowKey].find(s => s.id === shardId);
+      if (shardDef) {
+        if (Array.isArray(shardDef.val)) {
+          const [min, max] = shardDef.val;
+          const val = min + ((max - min) / 17) * (level - 1);
+          if (shardDef.stat === "health_scaling") rBon.hp += val;
+        } else {
+          rBon[shardDef.stat] = (rBon[shardDef.stat] || 0) + shardDef.val;
+        }
+      }
+    };
+    addShard(selectedRunes.shard1, 'row1');
+    addShard(selectedRunes.shard2, 'row2');
+    addShard(selectedRunes.shard3, 'row3');
+
+    // Basic Keystone Logic for Conqueror (Full Stacks Adaptive Force)
+    if (selectedRunes.keystone === 8010) { // Conqueror ID is 8010
+      const conqAF = 14.4 + ((32.4 - 14.4) / 17) * (level - 1);
+      rBon.adaptive += conqAF;
+    }
 
     equipped.forEach(item => {
       if (!item?.stats) return;
@@ -270,24 +322,34 @@ export default function App() {
       if (st.PercentLifeStealMod)   bon.lifesteal  += st.PercentLifeStealMod;
     });
 
+    // Adaptive Force resolution
+    // 1 Adaptive Force = 0.6 AD or 1 AP. If bonus AD >= bonus AP, it becomes AD.
+    if (rBon.adaptive > 0) {
+      if (bon.ad >= bon.ap) {
+        rBon.ad += rBon.adaptive * 0.6;
+      } else {
+        rBon.ap += rBon.adaptive;
+      }
+    }
+
     const total = {
-      hp:          base.hp + bon.hp,
-      hpregen:     base.hpregen + bon.hpregen,
-      mp:          base.mp + bon.mp,
-      mpregen:     base.mpregen + bon.mpregen,
-      ad:          base.ad + bon.ad,
-      ap:          bon.ap,
-      armor:       base.armor + bon.armor,
-      mr:          base.mr + bon.mr,
-      attackspeed: base.attackspeed * (1 + bon.attackspeed),
-      critchance:  bon.critchance,
-      lifesteal:   bon.lifesteal,
-      movespeed:   (base.movespeed + bon.movespeed) * (1 + bon.moveSpeedPct),
-      range:       base.range + bon.range,
+      hp:          base.hp + bon.hp + rBon.hp,
+      hpregen:     base.hpregen + bon.hpregen + rBon.hpregen,
+      mp:          base.mp + bon.mp + rBon.mp,
+      mpregen:     base.mpregen + bon.mpregen + rBon.mpregen,
+      ad:          base.ad + bon.ad + rBon.ad,
+      ap:          bon.ap + rBon.ap,
+      armor:       base.armor + bon.armor + rBon.armor,
+      mr:          base.mr + bon.mr + rBon.mr,
+      attackspeed: base.attackspeed * (1 + bon.attackspeed + rBon.attackspeed),
+      critchance:  bon.critchance + rBon.critchance,
+      lifesteal:   bon.lifesteal + rBon.lifesteal,
+      movespeed:   (base.movespeed + bon.movespeed + rBon.movespeed) * (1 + bon.moveSpeedPct + rBon.moveSpeedPct),
+      range:       base.range + bon.range + rBon.range,
     };
 
-    return { base, total };
-  }, [champDetail, level, equipped]);
+    return { base, total, rBon };
+  }, [champDetail, level, equipped, selectedRunes]);
 
   // ── Shop Items ──────────────────────────────────────────────────────────────
   const shopItems = useMemo(() => {
@@ -355,6 +417,7 @@ export default function App() {
       champName: champDetail.name,
       level: level,
       itemIds: equipped.map(i => i ? i.itemId : null),
+      runes: selectedRunes,
       timestamp: Date.now()
     };
     setSavedBuilds(newBuilds);
@@ -390,6 +453,18 @@ export default function App() {
       return id ? { ...allItems[id], itemId: id } : null;
     });
     setEquipped(items);
+    
+    // 4. Set Runes
+    if (b.runes) {
+      setSelectedRunes(b.runes);
+    } else {
+      setSelectedRunes({
+        primary: null, secondary: null,
+        keystone: null, p1: null, p2: null, p3: null,
+        s1: null, s2: null,
+        shard1: "r1_ad", shard2: "r2_ad", shard3: "r3_hp"
+      });
+    }
   };
 
   const deleteSlot = (idx) => {
@@ -499,6 +574,9 @@ export default function App() {
               savedBuilds={savedBuilds}
               loadFromSlot={loadFromSlot}
               setConfirmDelete={setConfirmDelete}
+              setShowRuneModal={setShowRuneModal}
+              selectedRunes={selectedRunes}
+              allRunes={allRunes}
             />
           )}
           
@@ -587,6 +665,16 @@ export default function App() {
           FMT={ITEM_STAT_FMT} 
           getStatLabel={getStatLabel}
           format={formatDescription} 
+        />
+      )}
+
+      {showRuneModal && (
+        <RuneModal
+          allRunes={allRunes}
+          selectedRunes={selectedRunes}
+          setSelectedRunes={setSelectedRunes}
+          onClose={() => setShowRuneModal(false)}
+          ver={ver}
         />
       )}
 
@@ -785,7 +873,7 @@ function AbilityRow({ abilityKey, name, iconSrc, effects, stats, champLevel }) {
   );
 }
 
-function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, setShowPicker, ver, savedBuilds, loadFromSlot, setConfirmDelete }) {
+function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, setShowPicker, ver, savedBuilds, loadFromSlot, setConfirmDelete, setShowRuneModal, selectedRunes, allRunes }) {
   // DDragon: partype (e.g. "Mana"), Meraki: resource (e.g. "MANA")
   const partype = champDetail.partype || "";
   const hasRes  = partype && partype !== "None";
@@ -849,6 +937,13 @@ function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, 
               </svg>
             </div>
           </div>
+          <div className="rune-button" onClick={() => setShowRuneModal(true)} title="Set Runes">
+            {selectedRunes.primary ? (
+              <img src={`${DDR}/cdn/img/${allRunes.find(r => r.id === selectedRunes.primary)?.icon}`} alt="Runes" />
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            )}
+          </div>
           <div className="champ-meta">
             <div className="champ-name">{champDetail.name}</div>
             <div className="champ-title">{champDetail.title}</div>
@@ -870,25 +965,30 @@ function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, 
           if (cfg.resource && !hasRes) return null;
           const total = stats.total[cfg.k] ?? 0;
           const base  = stats.base[cfg.k]  ?? 0;
-          const bonus = total - base;
-          if (cfg.itemOnly && bonus < 0.001) return null;
+          const rBon  = stats.rBon?.[cfg.k] ?? 0;
+          const itemBonus = total - base - rBon;
+          const displayBonus = total - base; // item + rune
+
+          if (cfg.itemOnly && displayBonus < 0.001) return null;
 
           const label = cfg.resource ? formatResLabel(partype, cfg.sub) : cfg.label;
           const barColor = resourceBarColor(cfg);
           const totalPct = Math.min(total / cfg.max, 1) * 100;
           const basePct  = total > 0 ? (base / total) * totalPct : 0;
-          const bonusPct = totalPct - basePct;
+          const itemPct  = total > 0 ? (itemBonus / total) * totalPct : 0;
+          const runePct  = totalPct - basePct - itemPct;
 
           return (
             <div key={cfg.k} className={`stat-row ${cfg.sub ? 'sub' : ''}`}>
               <div className="stat-label">{label}</div>
               <div className="stat-bar-container">
                 <div className="stat-bar-fill"  style={{ width:`${basePct}%`, background:barColor, opacity:0.75 }} />
-                <div className="stat-bar-bonus" style={{ width:`${bonusPct}%`, background:`var(--c-gold)` }} />
+                <div className="stat-bar-bonus" style={{ width:`${itemPct}%`, background:`var(--c-gold)` }} />
+                <div className="stat-bar-rune"  style={{ width:`${runePct}%`, background:`var(--c-rune, #EC4899)` }} />
               </div>
               <div className="stat-value">
-                <span className={bonus > 0.001 ? 'has-bonus' : ''}>{cfg.fmt(total)}</span>
-                {bonus > 0.001 && <span className="bonus-val">({cfg.fmtB(bonus)})</span>}
+                <span className={displayBonus > 0.001 ? 'has-bonus' : ''}>{cfg.fmt(total)}</span>
+                {displayBonus > 0.001 && <span className="bonus-val">({cfg.fmtB(displayBonus)})</span>}
               </div>
             </div>
           );
@@ -952,17 +1052,11 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
             onDragEnd={onDragEnd}
             onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }) : undefined}
             onMouseLeave={item ? () => { setTooltip(null); setTooltipAnchor(null); } : undefined}
-            onPointerUp={e => { e.currentTarget.dataset.lastPointer = e.pointerType; }}
             onClick={e => {
-              const pType = e.currentTarget.dataset.lastPointer;
-              if (item && (pType === 'mouse' || e.detail === 0)) {
+              if (item) {
                 removeItem(idx);
-              } else {
-                e.stopPropagation();
-                if (item) {
-                  if (tooltip?.itemId === item.itemId) { setTooltip(null); setTooltipAnchor(null); }
-                  else { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }
-                }
+                setTooltip(null);
+                setTooltipAnchor(null);
               }
             }}
           >
@@ -1021,7 +1115,12 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
 
   return (
     <div className="shop-content">
-      <div className="panel-title">Shop</div>
+      <div className="panel-title shop-header">
+        <div className="title-group">
+          <div className="main-title">Shop</div>
+          <div className="subtitle">Double tap to add to build</div>
+        </div>
+      </div>
       <input
         value={shopSearch}
         onChange={e => setShopSearch(e.target.value)}
@@ -1068,15 +1167,19 @@ function Shop({ shopSearch, setShopSearch, shopCat, setShopCat, shopItems, addIt
                       onMouseEnter={e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }}
                       onMouseLeave={() => { setTooltip(null); setTooltipAnchor(null); }}
                       onMouseMove={e => setMpos({ x:e.clientX, y:e.clientY })}
-                      onPointerUp={e => { e.currentTarget.dataset.lastPointer = e.pointerType; }}
                       onClick={(e) => {
-                        const pType = e.currentTarget.dataset.lastPointer;
-                        if (pType === 'mouse' || e.detail === 0) {
+                        e.stopPropagation();
+                        if (e.detail >= 2) {
                           addItem(item);
                         } else {
-                          e.stopPropagation();
-                          if (tooltip?.itemId === item.itemId) { setTooltip(null); setTooltipAnchor(null); }
-                          else { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }
+                          if (tooltip?.itemId === item.itemId) { 
+                            setTooltip(null); 
+                            setTooltipAnchor(null); 
+                          } else { 
+                            setTooltip(item); 
+                            setMpos({ x:e.clientX, y:e.clientY }); 
+                            setTooltipAnchor(e.currentTarget); 
+                          }
                         }
                       }}
                     >
@@ -1183,5 +1286,103 @@ function Modal({ title, children, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function RuneModal({ allRunes, selectedRunes, setSelectedRunes, onClose, ver }) {
+  const updateRune = (key, val) => setSelectedRunes(p => ({ ...p, [key]: val }));
+
+  const primaryTree = allRunes.find(r => r.id === selectedRunes.primary);
+  const secondaryTree = allRunes.find(r => r.id === selectedRunes.secondary);
+
+  const handleSecondaryClick = (runeId) => {
+    if (selectedRunes.s1 === runeId) return updateRune('s1', null);
+    if (selectedRunes.s2 === runeId) return updateRune('s2', null);
+    if (!selectedRunes.s1) return updateRune('s1', runeId);
+    if (!selectedRunes.s2) return updateRune('s2', runeId);
+    updateRune('s2', runeId); // overwrite second slot if full
+  };
+
+  return (
+    <Modal title="Runes & Shards" onClose={onClose}>
+      <div className="rune-modal-body">
+        
+        {/* Primary Path */}
+        <div className="rune-section primary-section">
+          <div className="rune-section-title">Primary Path</div>
+          <div className="rune-row tree-select">
+            {allRunes.map(r => (
+              <div key={r.id} className={`rune-icon tree-icon ${selectedRunes.primary === r.id ? 'active' : ''}`} onClick={() => updateRune('primary', r.id)}>
+                <img src={`${DDR}/cdn/img/${r.icon}`} alt={r.name} title={r.name} />
+              </div>
+            ))}
+          </div>
+          {primaryTree && (
+            <div className="rune-slots">
+              {primaryTree.slots.map((slot, sIdx) => {
+                const key = sIdx === 0 ? 'keystone' : `p${sIdx}`;
+                return (
+                  <div key={sIdx} className={`rune-row ${sIdx === 0 ? 'keystone-row' : ''}`}>
+                    {slot.runes.map(r => (
+                      <div key={r.id} className={`rune-icon ${selectedRunes[key] === r.id ? 'active' : ''}`} onClick={() => updateRune(key, r.id)}>
+                        <img src={`${DDR}/cdn/img/${r.icon}`} alt={r.name} title={r.name} />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Secondary Path */}
+        <div className="rune-section secondary-section">
+          <div className="rune-section-title">Secondary Path</div>
+          <div className="rune-row tree-select">
+            {allRunes.filter(r => r.id !== selectedRunes.primary).map(r => (
+              <div key={r.id} className={`rune-icon tree-icon ${selectedRunes.secondary === r.id ? 'active' : ''}`} onClick={() => updateRune('secondary', r.id)}>
+                <img src={`${DDR}/cdn/img/${r.icon}`} alt={r.name} title={r.name} />
+              </div>
+            ))}
+          </div>
+          {secondaryTree && (
+            <div className="rune-slots">
+              {secondaryTree.slots.slice(1).map((slot, sIdx) => (
+                <div key={sIdx} className="rune-row">
+                  {slot.runes.map(r => {
+                    const isActive = selectedRunes.s1 === r.id || selectedRunes.s2 === r.id;
+                    return (
+                      <div key={r.id} className={`rune-icon ${isActive ? 'active' : ''}`} onClick={() => handleSecondaryClick(r.id)}>
+                        <img src={`${DDR}/cdn/img/${r.icon}`} alt={r.name} title={r.name} />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Stat Shards */}
+        <div className="rune-section shards-section">
+          <div className="rune-section-title">Stat Shards</div>
+          <div className="rune-slots">
+            {['row1', 'row2', 'row3'].map((rowKey, idx) => {
+              const stateKey = `shard${idx + 1}`;
+              return (
+                <div key={rowKey} className="rune-row shard-row">
+                  {STAT_SHARDS[rowKey].map(shard => (
+                    <div key={shard.id} className={`rune-icon shard-icon ${selectedRunes[stateKey] === shard.id ? 'active' : ''}`} onClick={() => updateRune(stateKey, shard.id)}>
+                      <img src={`${DDR}/cdn/img/perk-images/${shard.icon}`} alt={shard.label} title={shard.label} />
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+    </Modal>
   );
 }

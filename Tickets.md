@@ -49,7 +49,7 @@ As a theorycrafter, I'd like to see the damage and scaling of champion abilities
 ---
 
 ## Ticket #2: Rune Integration System
-*Status: Open*
+*Status: Completed*
 ### User Story
 As a competitive player, I'd like to select runes (Keystones and Stat Shards) so that I can see my exact in-game stats at level 1 and beyond.
 
@@ -287,3 +287,30 @@ As a user, I'd like the build and shop panels to be combined into a single unifi
 
 - **Estimated complexity**: Low
 - **Risk assessment**: Mobile layout adjustments might look cramped on very narrow screens.
+
+---
+
+## Ticket #12: Build Slot Interaction & Shop Double Tap
+*Status: done*
+### User Story
+As a user, I'd like to remove items from my build with a single tap and add items from the shop with a double tap so that the interface feels faster and more intuitive, especially on mobile.
+
+- **Context**: Tapping an item in the build slot currently just highlights it (hover state) on mobile without removing it. Double tapping in the shop is a common pattern for adding items.
+- **Description**: Implement single tap removal for build slots and double tap/click addition for shop items. Add a subtitle to the shop to guide the user.
+- **Requirements**:
+    - Update `Inventory` click handler to remove items on any click/tap.
+    - Update `Shop` click handler to use `e.detail` for double tap/click detection.
+    - Add "Double tap to add to build" subtitle to the Shop header.
+    - Standardize the Shop header to match the Inventory header style.
+
+### Acceptance criteria
+- **Given** I am on any device
+- **When** I tap an item in the build slot
+- **Then** it should be removed immediately.
+- **When** I double tap/click an item in the shop
+- **Then** it should be added to the build.
+- **When** I look at the shop
+- **Then** I should see the subtitle "Double tap to add to build".
+
+- **Estimated complexity**: Low
+- **Risk assessment**: Mobile users will no longer be able to see tooltips for items already in their inventory via single tap.

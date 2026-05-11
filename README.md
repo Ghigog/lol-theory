@@ -12,7 +12,7 @@
 
 -   **Live Data Sync**: Fetches the latest champion data from **Meraki Analytics** (`lolstaticdata`) for precise ability scalings, and item data directly from Riot's Data Dragon (`ddragon`).
 -   **Accurate Stat Scaling**: Implements Riot's official non-linear growth formula (introduced in Season 11).
--   **Interactive Shop**: Full-featured item shop with categories, search, and drag-and-drop inventory management.
+-   **Interactive Shop**: Full-featured item shop with categories, search, drag-and-drop support, and quick-add (double-tap) / quick-remove (tap) shortcuts.
 -   **Dynamic UI**: A premium, "Hextech-inspired" dark theme using `Cinzel` and `Rajdhani` typography.
 -   **Real-time Calculations**: Instant updates to HP, AD, AP, Attack Speed, Movement Speed (including percentage modifiers), and ability damage scalings.
 

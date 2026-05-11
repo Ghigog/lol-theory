@@ -135,7 +135,7 @@
   color: var(--c-gold);
 }
 
-.inventory-header {
+.inventory-header, .shop-header {
   padding: 0.4rem 1rem;
   height: 44px;
   display: flex;
@@ -1225,4 +1225,128 @@ input[type=range]::-webkit-slider-thumb {
   color: #A8FF78;
   font-weight: 700;
   margin-left: 3px;
+}
+
+/* ── Runes ── */
+.rune-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--c-panel);
+  border: 1px solid var(--c-gold-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+  transition: var(--trans);
+  color: var(--c-gold);
+}
+
+.rune-button:hover {
+  border-color: var(--c-gold);
+  box-shadow: 0 0 10px var(--c-gold-glow);
+  transform: scale(1.1);
+}
+
+.rune-button img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.stat-bar-rune {
+  height: 100%;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px var(--c-rune, #EC4899);
+}
+
+.rune-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rune-section {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--c-gold-dim);
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.rune-section-title {
+  color: var(--c-gold);
+  font-family: var(--ff-title);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--c-gold-dim);
+  padding-bottom: 0.25rem;
+}
+
+.rune-row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.rune-row:last-child {
+  margin-bottom: 0;
+}
+
+.tree-select {
+  margin-bottom: 1.25rem;
+}
+
+.rune-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: var(--trans);
+  opacity: 0.5;
+  filter: grayscale(80%);
+}
+
+.rune-icon:hover {
+  opacity: 0.8;
+  filter: grayscale(40%);
+  transform: scale(1.05);
+}
+
+.rune-icon.active {
+  opacity: 1;
+  filter: grayscale(0%);
+  border-color: var(--c-gold);
+  box-shadow: 0 0 15px var(--c-gold-glow);
+}
+
+.rune-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tree-icon {
+  width: 54px;
+  height: 54px;
+}
+
+.keystone-row .rune-icon {
+  width: 64px;
+  height: 64px;
+}
+
+.shard-row {
+  justify-content: space-around;
+}
+
+.shard-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px; /* Shards are often square-ish */
 }
