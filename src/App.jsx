@@ -351,7 +351,7 @@ export default function App() {
     const newBuilds = [...savedBuilds];
     // Use DDragon string id (champDetail.id is e.g. "Garen")
     newBuilds[idx] = {
-      champId: champDetail.key,
+      champId: champDetail.id,
       champName: champDetail.name,
       level: level,
       itemIds: equipped.map(i => i ? i.itemId : null),
@@ -511,7 +511,7 @@ export default function App() {
                 >
                   {b ? (
                     <>
-                      <img src={`${DDR}/cdn/${ver}/img/champion/${b.champId}.png`} alt={b.champId} className="mini-slot-img" />
+                      <img src={`${DDR}/cdn/${ver}/img/champion/${b.champId}.png`} alt={b.champName} className="mini-slot-img" />
                       <div className="mini-slot-rm" onClick={(e) => { e.stopPropagation(); setConfirmDelete(i); }}>✕</div>
                     </>
                   ) : (
