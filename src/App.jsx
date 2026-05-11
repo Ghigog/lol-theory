@@ -365,8 +365,11 @@ export default function App() {
     const b = savedBuilds[idx];
     if (!b) return;
     
-    // 1. Pick Champ
-    const c = allChamps[b.champId];
+    // 1. Pick Champ (resilient lookup handles both Name ID and Numeric Key)
+    let c = allChamps[b.champId];
+    if (!c) {
+      c = Object.values(allChamps).find(ch => ch.id === b.champId || ch.key === b.champId);
+    }
     if (c) {
       try {
         const d = await fetch(`${DDR}/cdn/${ver}/data/en_US/champion/${c.id}.json`).then(r => r.json());
@@ -511,7 +514,11 @@ export default function App() {
                 >
                   {b ? (
                     <>
-                      <img src={`${DDR}/cdn/${ver}/img/champion/${b.champId}.png`} alt={b.champName} className="mini-slot-img" />
+                      {(() => {
+                        const c = Object.values(allChamps).find(ch => ch.id === b.champId || ch.key === b.champId);
+                        const imgId = c ? c.id : b.champId;
+                        return <img src={`${DDR}/cdn/${ver}/img/champion/${imgId}.png`} alt={b.champName} className="mini-slot-img" />;
+                      })()}
                       <div className="mini-slot-rm" onClick={(e) => { e.stopPropagation(); setConfirmDelete(i); }}>✕</div>
                     </>
                   ) : (
