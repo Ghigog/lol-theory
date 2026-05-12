@@ -60,8 +60,15 @@ const STATS = [
   { k: "armor",      label: "Armor",           color: "#EAB308", max: 350,  fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}` },
   { k: "mr",         label: "Magic Resist",    color: "#8B5CF6", max: 280,  fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}` },
   { k: "attackspeed",label: "Attack Speed",    color: "#FCD34D", max: 2.5,  fmt: v => v.toFixed(3), fmtB: v => `+${v.toFixed(3)}` },
+  { k: "abilityhaste",label: "Ability Haste",  color: "#38BDF8", max: 150,  fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}` },
+  { k: "lethality",  label: "Lethality",       color: "#F472B6", max: 100,  fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}`, itemOnly: true },
+  { k: "armorpen",   label: "Armor Pen",       color: "#FB923C", max: 1.0,  fmt: v => Math.round(v*100)+"%", fmtB: v => `+${Math.round(v*100)}%`, itemOnly: true },
+  { k: "magpenflat", label: "Magic Pen",       color: "#A78BFA", max: 80,   fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}`, itemOnly: true },
+  { k: "magpenpct",  label: "Magic Pen %",     color: "#C084FC", max: 1.0,  fmt: v => Math.round(v*100)+"%", fmtB: v => `+${Math.round(v*100)}%`, itemOnly: true },
   { k: "critchance", label: "Crit Chance",     color: "#EF4444", max: 1.0,  fmt: v => Math.round(v*100)+"%", fmtB: v => `+${Math.round(v*100)}%` },
+  { k: "tenacity",   label: "Tenacity",        color: "#F87171", max: 1.0,  fmt: v => Math.round(v*100)+"%", fmtB: v => `+${Math.round(v*100)}%` },
   { k: "lifesteal",  label: "Life Steal",      color: "#10B981", max: 1.0,  fmt: v => Math.round(v*100)+"%", fmtB: v => `+${Math.round(v*100)}%`, itemOnly: true },
+  { k: "omnivamp",   label: "Omnivamp",        color: "#EF4444", max: 1.0,  fmt: v => Math.round(v*100)+"%", fmtB: v => `+${Math.round(v*100)}%`, itemOnly: true },
   { k: "range",      label: "Range",           color: "#94A3B8", max: 800,  fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}` },
   { k: "movespeed",  label: "Move Speed",      color: "#60A5FA", max: 600,  fmt: v => Math.round(v), fmtB: v => `+${Math.round(v)}` },
 ];
@@ -278,8 +285,8 @@ export default function App() {
       ap: 0, critchance: 0, lifesteal: 0,
     };
 
-    const bon = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, moveSpeedPct:0, range:0 };
-    const rBon = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, moveSpeedPct:0, range:0, adaptive:0 };
+    const bon = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, moveSpeedPct:0, range:0, abilityhaste:0, tenacity:0, lethality:0, armorpen:0, magpenflat:0, magpenpct:0, omnivamp:0 };
+    const rBon = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, moveSpeedPct:0, range:0, adaptive:0, abilityhaste:0, tenacity:0, lethality:0, armorpen:0, magpenflat:0, magpenpct:0, omnivamp:0 };
 
     const addShard = (shardId, rowKey) => {
       if (!shardId) return;
@@ -318,8 +325,16 @@ export default function App() {
       if (st.FlatMovementSpeedMod)  bon.movespeed  += st.FlatMovementSpeedMod;
       if (st.PercentMovementSpeedMod) bon.moveSpeedPct += st.PercentMovementSpeedMod;
       if (st.FlatAttackSpeedMod)    bon.attackspeed += st.FlatAttackSpeedMod;
+      if (st.PercentAttackSpeedMod) bon.attackspeed += st.PercentAttackSpeedMod;
       if (st.FlatCritChanceMod)     bon.critchance += st.FlatCritChanceMod;
       if (st.PercentLifeStealMod)   bon.lifesteal  += st.PercentLifeStealMod;
+      if (st.FlatAbilityHasteMod)   bon.abilityhaste += st.FlatAbilityHasteMod;
+      if (st.PercentTenacityMod)    bon.tenacity     += st.PercentTenacityMod;
+      if (st.FlatLethalityMod)      bon.lethality    += st.FlatLethalityMod;
+      if (st.PercentArmorPenetrationMod) bon.armorpen += st.PercentArmorPenetrationMod;
+      if (st.FlatMagicPenetrationMod) bon.magpenflat += st.FlatMagicPenetrationMod;
+      if (st.PercentMagicPenetrationMod) bon.magpenpct += st.PercentMagicPenetrationMod;
+      if (st.PercentOmnivampMod)    bon.omnivamp     += st.PercentOmnivampMod;
     });
 
     // Adaptive Force resolution
@@ -346,9 +361,43 @@ export default function App() {
       lifesteal:   bon.lifesteal + rBon.lifesteal,
       movespeed:   (base.movespeed + bon.movespeed + rBon.movespeed) * (1 + bon.moveSpeedPct + rBon.moveSpeedPct),
       range:       base.range + bon.range + rBon.range,
+      abilityhaste: bon.abilityhaste + rBon.abilityhaste,
+      tenacity:     bon.tenacity + rBon.tenacity,
+      lethality:    bon.lethality + rBon.lethality,
+      armorpen:     bon.armorpen + rBon.armorpen,
+      magpenflat:   bon.magpenflat + rBon.magpenflat,
+      magpenpct:    bon.magpenpct + rBon.magpenpct,
+      omnivamp:     bon.omnivamp + rBon.omnivamp,
     };
 
-    return { base, total, rBon };
+    const rBonDisplay = {};
+    const totalWithoutRunes = {
+      hp:           base.hp + bon.hp,
+      hpregen:      base.hpregen + bon.hpregen,
+      mp:           base.mp + bon.mp,
+      mpregen:      base.mpregen + bon.mpregen,
+      ad:           base.ad + bon.ad,
+      ap:           bon.ap,
+      armor:        base.armor + bon.armor,
+      mr:           base.mr + bon.mr,
+      attackspeed:  base.attackspeed * (1 + bon.attackspeed),
+      critchance:   bon.critchance,
+      lifesteal:    bon.lifesteal,
+      movespeed:    (base.movespeed + bon.movespeed) * (1 + bon.moveSpeedPct),
+      range:        base.range,
+      abilityhaste: bon.abilityhaste,
+      tenacity:     bon.tenacity,
+      lethality:    bon.lethality,
+      armorpen:     bon.armorpen,
+      magpenflat:   bon.magpenflat,
+      magpenpct:    bon.magpenpct,
+      omnivamp:     bon.omnivamp,
+    };
+    Object.keys(total).forEach(k => {
+      rBonDisplay[k] = total[k] - (totalWithoutRunes[k] || 0);
+    });
+
+    return { base, total, rBon: rBonDisplay };
   }, [champDetail, level, equipped, selectedRunes]);
 
   // ── Shop Items ──────────────────────────────────────────────────────────────
