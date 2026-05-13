@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import ProgressiveFlowchart from "./components/ProgressiveFlowchart";
+import { generateFlowchartFromEquipped, validateFlowchart } from "./flowchartUtils";
 import "./App.css";
 
 const DDR = "https://ddragon.leagueoflegends.com";
@@ -157,6 +159,10 @@ export default function App() {
   const [dragOverSlot,  setDragOverSlot]= useState(null);
   const [showPicker,    setShowPicker]  = useState(true);
   const [activeTab,     setActiveTab]   = useState(null);
+  
+  // ── Flowchart (Ticket #6) ───────────────────────────────────────────────────
+  const [showFlowchart, setShowFlowchart] = useState(false);
+  const [flowchartData, setFlowchartData] = useState({ nodes: {}, stages: [] });
 
   // ── Saved Builds (Ticket #5) ───────────────────────────────────────────────
   const [savedBuilds,   setSavedBuilds] = useState(() => {
@@ -456,9 +462,19 @@ export default function App() {
     setShopCat("all");
   };
 
-  // ── Build Saving Logic (Ticket #5) ──────────────────────────────────────────
   const saveToSlot = (idx) => {
     if (!champDetail) return;
+    
+    // Validate flowchart if it has data
+    if (showFlowchart || flowchartData.stages.length > 0) {
+      const equippedIds = equipped.map(i => i ? i.itemId : null);
+      const missing = validateFlowchart(flowchartData, equippedIds, allItems);
+      if (missing.length > 0) {
+        alert(`Cannot save build! The flowchart is missing required components for: ${missing.join(', ')}`);
+        return;
+      }
+    }
+
     const newBuilds = [...savedBuilds];
     // Use DDragon string id (champDetail.id is e.g. "Garen")
     newBuilds[idx] = {
@@ -467,6 +483,7 @@ export default function App() {
       level: level,
       itemIds: equipped.map(i => i ? i.itemId : null),
       runes: selectedRunes,
+      flowchartData: flowchartData,
       timestamp: Date.now()
     };
     setSavedBuilds(newBuilds);
@@ -514,6 +531,13 @@ export default function App() {
         shard1: "r1_ad", shard2: "r2_ad", shard3: "r3_hp"
       });
     }
+
+    // 5. Set Flowchart
+    if (b.flowchartData) {
+      setFlowchartData(b.flowchartData);
+    } else {
+      setFlowchartData({ nodes: {}, stages: [] });
+    }
   };
 
   const deleteSlot = (idx) => {
@@ -527,6 +551,7 @@ export default function App() {
   const onShopDragStart = (e, item) => {
     setDragging({ item, src: "shop" });
     e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'shop-item', itemId: item.itemId }));
   };
 
   const onSlotDragStart = (e, idx) => {
@@ -675,7 +700,29 @@ export default function App() {
               ver={ver}
               champDetail={champDetail}
               setShowSaveModal={setShowSaveModal}
+              showFlowchart={showFlowchart}
+              setShowFlowchart={(val) => {
+                if (val && flowchartData.stages.length === 0) {
+                  const equippedIds = equipped.map(i => i ? i.itemId : null);
+                  setFlowchartData(generateFlowchartFromEquipped(equippedIds, allItems));
+                }
+                setShowFlowchart(val);
+              }}
             />
+            {showFlowchart && (
+              <ProgressiveFlowchart 
+                flowchartData={flowchartData}
+                setFlowchartData={setFlowchartData}
+                allItems={allItems}
+                ver={ver}
+                setTooltip={setTooltip}
+                setTooltipAnchor={setTooltipAnchor}
+                setMpos={setMpos}
+                tooltip={tooltip}
+                onDragEnd={onDragEnd}
+                dragging={dragging}
+              />
+            )}
           </div>
 
           <div className="panel shop-panel active">
@@ -1068,7 +1115,7 @@ function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, 
   );
 }
 
-function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setTooltipAnchor, setMpos, tooltip, dragOverSlot, ver, champDetail, setShowSaveModal }) {
+function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSlotDrop, onDragEnd, removeItem, setTooltip, setTooltipAnchor, setMpos, tooltip, dragOverSlot, ver, champDetail, setShowSaveModal, showFlowchart, setShowFlowchart }) {
   return (
     <div className="inventory-panel">
       <div className="panel-title inventory-header">
@@ -1077,6 +1124,9 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
           <div className="subtitle">Drag from shop · click to remove</div>
         </div>
         <div className="header-actions">
+          <button className={`flow-toggle-btn ${showFlowchart ? 'active' : ''}`} onClick={() => setShowFlowchart(!showFlowchart)} title="Toggle Progressive Flowchart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"></path><path d="M8 3H3v5"></path><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.828l-2.656-2.656A4 4 0 0 1 7 5.39V3"></path><path d="M12 22v-8.3a4 4 0 0 1 1.172-2.828l2.656-2.656A4 4 0 0 0 17 5.39V3"></path></svg>
+          </button>
           <button className="save-btn" onClick={() => setShowSaveModal(true)} disabled={!champDetail || !equipped.some(Boolean)} title="Save Build">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
           </button>
@@ -1088,39 +1138,41 @@ function Inventory({ equipped, clearBuild, onSlotDragStart, onSlotDragOver, onSl
         </div>
       </div>
 
-      <div className="inventory-grid">
-        {equipped.map((item, idx) => (
-          <div
-            key={idx}
-            className={`slot-box ${dragOverSlot === idx ? 'drag-over' : ''} ${item ? 'has-item' : ''} ${idx === 6 ? 'special-item-slot' : ''}`}
-            draggable={!!item}
-            onDragStart={e => onSlotDragStart(e, idx)}
-            onDragOver={e => onSlotDragOver(e, idx)}
-            onDrop={e => onSlotDrop(e, idx)}
-            onDragLeave={() => {}}
-            onDragEnd={onDragEnd}
-            onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }) : undefined}
-            onMouseLeave={item ? () => { setTooltip(null); setTooltipAnchor(null); } : undefined}
-            onClick={e => {
-              if (item) {
-                removeItem(idx);
-                setTooltip(null);
-                setTooltipAnchor(null);
-              }
-            }}
-          >
-            {item ? (
-              <>
-                <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} className="item-img" />
-                <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
-                <div className="slot-rm">✕</div>
-              </>
-            ) : (
-              <div className="empty-slot">＋</div>
-            )}
-          </div>
-        ))}
-      </div>
+      {!showFlowchart && (
+        <div className="inventory-grid">
+          {equipped.map((item, idx) => (
+            <div
+              key={idx}
+              className={`slot-box ${dragOverSlot === idx ? 'drag-over' : ''} ${item ? 'has-item' : ''} ${idx === 6 ? 'special-item-slot' : ''}`}
+              draggable={!!item}
+              onDragStart={e => onSlotDragStart(e, idx)}
+              onDragOver={e => onSlotDragOver(e, idx)}
+              onDrop={e => onSlotDrop(e, idx)}
+              onDragLeave={() => {}}
+              onDragEnd={onDragEnd}
+              onMouseEnter={item ? (e => { setTooltip(item); setMpos({ x:e.clientX, y:e.clientY }); setTooltipAnchor(e.currentTarget); }) : undefined}
+              onMouseLeave={item ? () => { setTooltip(null); setTooltipAnchor(null); } : undefined}
+              onClick={e => {
+                if (item) {
+                  removeItem(idx);
+                  setTooltip(null);
+                  setTooltipAnchor(null);
+                }
+              }}
+            >
+              {item ? (
+                <>
+                  <img src={`${DDR}/cdn/${ver}/img/item/${item.image.full}`} alt={item.name} className="item-img" />
+                  <div className="item-price">{item.gold?.total?.toLocaleString()}g</div>
+                  <div className="slot-rm">✕</div>
+                </>
+              ) : (
+                <div className="empty-slot">＋</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

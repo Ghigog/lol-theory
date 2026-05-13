@@ -139,8 +139,8 @@ As a builder, I'd like to save my builds into dedicated slots and recover them l
 
 ---
 
-## Ticket #6: Time Objective System
-*Status: Open*
+## Ticket #6: Time Objective System & Progressive Build Flowchart
+*Status: done*
 ### User Story
 As a strategic player, I'd like to define specific time-based objectives for my build so that I have a clear roadmap of power spikes and gold targets to follow during a live match.
 
