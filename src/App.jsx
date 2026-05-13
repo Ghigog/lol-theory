@@ -440,16 +440,19 @@ export default function App() {
     const next = [...equipped];
     next[idx] = item;
     setEquipped(next);
+    setFlowchartData({ nodes: {}, stages: [] });
   };
 
   const removeItem = (idx) => {
     const next = [...equipped];
     next[idx] = null;
     setEquipped(next);
+    setFlowchartData({ nodes: {}, stages: [] });
   };
 
   const clearBuild = () => {
     setEquipped(Array(7).fill(null));
+    setFlowchartData({ nodes: {}, stages: [] });
   };
 
   const resetAll = () => {
@@ -460,6 +463,7 @@ export default function App() {
     setChampSearch("");
     setShopSearch("");
     setShopCat("all");
+    setFlowchartData({ nodes: {}, stages: [] });
   };
 
   const saveToSlot = (idx) => {
@@ -570,12 +574,18 @@ export default function App() {
     setDragOverSlot(null);
     if (!dragging) return;
     const next = [...equipped];
+    let changed = false;
     if (dragging.src === "shop") {
       next[idx] = dragging.item;
+      changed = true;
     } else if (typeof dragging.src === "number") {
-      [next[idx], next[dragging.src]] = [next[dragging.src], next[idx]];
+      if (next[idx] !== next[dragging.src]) {
+        [next[idx], next[dragging.src]] = [next[dragging.src], next[idx]];
+        changed = true;
+      }
     }
     setEquipped(next);
+    if (changed) setFlowchartData({ nodes: {}, stages: [] });
     setDragging(null);
   };
 
