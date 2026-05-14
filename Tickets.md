@@ -314,3 +314,27 @@ As a user, I'd like to remove items from my build with a single tap and add item
 
 - **Estimated complexity**: Low
 - **Risk assessment**: Mobile users will no longer be able to see tooltips for items already in their inventory via single tap.
+
+---
+
+## Ticket #13: Search Improvements & Shop UI Tweak
+*Status: done*
+### User Story
+As a user, I'd like to search for items by their stats (e.g. "move speed", "health") and have the shop tabs take up less vertical space so that I can find items more efficiently and see more of the shop grid.
+
+- **Context**: Users often search for stats they need rather than exact item names. The category tabs were taking up significant vertical space on smaller screens.
+- **Description**: Extend the shop search logic to include item descriptions (stripped of HTML tags) and reduce the size of the category buttons.
+- **Requirements**:
+    - Update `shopItems` filtering to match query against stripped `item.description`.
+    - Reduce padding and font size for `.cat-btn`.
+    - Reduce `margin-bottom` for `.shop-cats`.
+
+### Acceptance criteria
+- **Given** I am in the shop
+- **When** I search for "move speed"
+- **Then** I should see items that provide move speed even if "move speed" isn't in their name.
+- **When** I look at the shop categories
+- **Then** they should be smaller and more compact than before.
+
+- **Estimated complexity**: Low
+- **Risk assessment**: Minimal.

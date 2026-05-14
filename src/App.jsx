@@ -413,7 +413,12 @@ export default function App() {
         if (!item.gold?.purchasable || !item.maps?.["11"]) return false;
         if (!item.gold.total) return false;
         if (item.inStore === false) return false;
-        if (shopSearch && !item.name.toLowerCase().includes(shopSearch.toLowerCase())) return false;
+        if (shopSearch) {
+          const q = shopSearch.toLowerCase();
+          const nameMatch = item.name.toLowerCase().includes(q);
+          const descMatch = (item.description || "").toLowerCase().replace(/<[^>]*>?/gm, '').includes(q);
+          if (!nameMatch && !descMatch) return false;
+        }
         if (shopCat !== "all" && !(item.tags || []).includes(shopCat)) return false;
         return true;
       })
