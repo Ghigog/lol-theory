@@ -71,7 +71,8 @@ As a competitive player, I'd like to select runes (Keystones and Stat Shards) so
 ---
 
 ## Ticket #3: Advanced Item Passives
-*Status: Open*
+*Status: done*
+
 ### User Story
 As a detailed builder, I'd like item passives (like Rabadon's Deathcap or Infinity Edge) to be calculated so that I get an accurate final stat profile.
 
@@ -192,7 +193,7 @@ As a mobile user, I'd like to access the build simulator on my phone so that I c
 ---
 
 ## Ticket #8: Item Shop Grouping & Filtering
-*Status: Open*
+*Status: Done*
 ### User Story
 As a player, I'd like the item shop to group items by their appropriate tier (Basic, Epic, Legendary, Boots, etc.) so that I can browse items in a structured way that matches the in-game experience.
 

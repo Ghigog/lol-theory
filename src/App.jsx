@@ -129,6 +129,16 @@ const getStatLabel = (key, val) => {
   return [label, `+${val}`];
 };
 
+const ADVANCED_PASSIVES = {
+  3089: { name: "Magical Opus",        ap_pct: 0.35 },                // Rabadon's
+  6665: { name: "Voidborne Resilience", bonus_res_pct: 0.30 },       // Jak'Sho
+  3011: { name: "Juxtaposition",      armor: 15, mr: 15, pen_pct: 0.30 }, // Terminus (max stacks)
+  3031: { name: "Perfection",         crit_dmg_pct: 0.40 },          // Infinity Edge
+  3040: { name: "Awe",                ap_from_mana_pct: 0.02 },      // Seraph's
+  3181: { name: "Boarding Party",     armor: 60, mr: 60 },           // Hullbreaker (alone, level 18)
+};
+
+
 // ─── Main App ────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -310,12 +320,23 @@ export default function App() {
     addShard(selectedRunes.shard1, 'row1');
     addShard(selectedRunes.shard2, 'row2');
     addShard(selectedRunes.shard3, 'row3');
-
+ 
     // Basic Keystone Logic for Conqueror (Full Stacks Adaptive Force)
     if (selectedRunes.keystone === 8010) { // Conqueror ID is 8010
       const conqAF = 14.4 + ((32.4 - 14.4) / 17) * (level - 1);
       rBon.adaptive += conqAF;
     }
+
+    // Adaptive Force resolution
+    // 1 Adaptive Force = 0.6 AD or 1 AP. If bonus AD >= bonus AP, it becomes AD.
+    if (rBon.adaptive > 0) {
+      if (bon.ad >= bon.ap) {
+        rBon.ad += rBon.adaptive * 0.6;
+      } else {
+        rBon.ap += rBon.adaptive;
+      }
+    }
+
 
     equipped.forEach(item => {
       if (!item?.stats) return;
@@ -343,68 +364,85 @@ export default function App() {
       if (st.PercentOmnivampMod)    bon.omnivamp     += st.PercentOmnivampMod;
     });
 
-    // Adaptive Force resolution
-    // 1 Adaptive Force = 0.6 AD or 1 AP. If bonus AD >= bonus AP, it becomes AD.
-    if (rBon.adaptive > 0) {
-      if (bon.ad >= bon.ap) {
-        rBon.ad += rBon.adaptive * 0.6;
-      } else {
-        rBon.ap += rBon.adaptive;
+    const cond = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, range:0, abilityhaste:0, tenacity:0, lethality:0, armorpen:0, magpenflat:0, magpenpct:0, omnivamp:0 };
+
+    equipped.forEach(item => {
+      if (!item) return;
+      const adv = ADVANCED_PASSIVES[item.itemId];
+      if (!adv) return;
+
+      if (adv.ap_pct) {
+        cond.ap += (bon.ap + rBon.ap) * adv.ap_pct;
       }
-    }
+      if (adv.bonus_res_pct) {
+        cond.armor += (bon.armor + rBon.armor) * adv.bonus_res_pct;
+        cond.mr += (bon.mr + rBon.mr) * adv.bonus_res_pct;
+      }
+      if (adv.armor) cond.armor += adv.armor;
+      if (adv.mr) cond.mr += adv.mr;
+      if (adv.pen_pct) {
+        cond.armorpen += adv.pen_pct;
+        cond.magpenpct += adv.pen_pct;
+      }
+      if (adv.ap_from_mana_pct) {
+        const totalMana = base.mp + bon.mp + rBon.mp;
+        cond.ap += totalMana * adv.ap_from_mana_pct;
+      }
+    });
 
     const total = {
-      hp:          base.hp + bon.hp + rBon.hp,
-      hpregen:     base.hpregen + bon.hpregen + rBon.hpregen,
-      mp:          base.mp + bon.mp + rBon.mp,
-      mpregen:     base.mpregen + bon.mpregen + rBon.mpregen,
-      ad:          base.ad + bon.ad + rBon.ad,
-      ap:          bon.ap + rBon.ap,
-      armor:       base.armor + bon.armor + rBon.armor,
-      mr:          base.mr + bon.mr + rBon.mr,
-      attackspeed: base.attackspeed * (1 + bon.attackspeed + rBon.attackspeed),
-      critchance:  bon.critchance + rBon.critchance,
-      lifesteal:   bon.lifesteal + rBon.lifesteal,
-      movespeed:   (base.movespeed + bon.movespeed + rBon.movespeed) * (1 + bon.moveSpeedPct + rBon.moveSpeedPct),
-      range:       base.range + bon.range + rBon.range,
-      abilityhaste: bon.abilityhaste + rBon.abilityhaste,
-      tenacity:     bon.tenacity + rBon.tenacity,
-      lethality:    bon.lethality + rBon.lethality,
-      armorpen:     bon.armorpen + rBon.armorpen,
-      magpenflat:   bon.magpenflat + rBon.magpenflat,
-      magpenpct:    bon.magpenpct + rBon.magpenpct,
-      omnivamp:     bon.omnivamp + rBon.omnivamp,
+      hp:          base.hp + bon.hp + rBon.hp + cond.hp,
+      hpregen:     base.hpregen + bon.hpregen + rBon.hpregen + cond.hpregen,
+      mp:          base.mp + bon.mp + rBon.mp + cond.mp,
+      mpregen:     base.mpregen + bon.mpregen + rBon.mpregen + cond.mpregen,
+      ad:          base.ad + bon.ad + rBon.ad + cond.ad,
+      ap:          bon.ap + rBon.ap + cond.ap,
+      armor:       base.armor + bon.armor + rBon.armor + cond.armor,
+      mr:          base.mr + bon.mr + rBon.mr + cond.mr,
+      attackspeed: base.attackspeed * (1 + bon.attackspeed + rBon.attackspeed + cond.attackspeed),
+      critchance:  bon.critchance + rBon.critchance + cond.critchance,
+      lifesteal:   bon.lifesteal + rBon.lifesteal + cond.lifesteal,
+      movespeed:   (base.movespeed + bon.movespeed + rBon.movespeed + cond.movespeed) * (1 + bon.moveSpeedPct + rBon.moveSpeedPct),
+      range:       base.range + bon.range + rBon.range + cond.range,
+      abilityhaste: bon.abilityhaste + rBon.abilityhaste + cond.abilityhaste,
+      tenacity:     bon.tenacity + rBon.tenacity + cond.tenacity,
+      lethality:    bon.lethality + rBon.lethality + cond.lethality,
+      armorpen:     bon.armorpen + rBon.armorpen + cond.armorpen,
+      magpenflat:   bon.magpenflat + rBon.magpenflat + cond.magpenflat,
+      magpenpct:    bon.magpenpct + rBon.magpenpct + cond.magpenpct,
+      omnivamp:     bon.omnivamp + rBon.omnivamp + cond.omnivamp,
     };
 
     const rBonDisplay = {};
     const totalWithoutRunes = {
-      hp:           base.hp + bon.hp,
-      hpregen:      base.hpregen + bon.hpregen,
-      mp:           base.mp + bon.mp,
-      mpregen:      base.mpregen + bon.mpregen,
-      ad:           base.ad + bon.ad,
-      ap:           bon.ap,
-      armor:        base.armor + bon.armor,
-      mr:           base.mr + bon.mr,
-      attackspeed:  base.attackspeed * (1 + bon.attackspeed),
-      critchance:   bon.critchance,
-      lifesteal:    bon.lifesteal,
-      movespeed:    (base.movespeed + bon.movespeed) * (1 + bon.moveSpeedPct),
-      range:        base.range,
-      abilityhaste: bon.abilityhaste,
-      tenacity:     bon.tenacity,
-      lethality:    bon.lethality,
-      armorpen:     bon.armorpen,
-      magpenflat:   bon.magpenflat,
-      magpenpct:    bon.magpenpct,
-      omnivamp:     bon.omnivamp,
+      hp:           base.hp + bon.hp + cond.hp,
+      hpregen:      base.hpregen + bon.hpregen + cond.hpregen,
+      mp:           base.mp + bon.mp + cond.mp,
+      mpregen:      base.mpregen + bon.mpregen + cond.mpregen,
+      ad:           base.ad + bon.ad + cond.ad,
+      ap:           bon.ap + cond.ap,
+      armor:        base.armor + bon.armor + cond.armor,
+      mr:           base.mr + bon.mr + cond.mr,
+      attackspeed:  base.attackspeed * (1 + bon.attackspeed + cond.attackspeed),
+      critchance:   bon.critchance + cond.critchance,
+      lifesteal:    bon.lifesteal + cond.lifesteal,
+      movespeed:    (base.movespeed + bon.movespeed + cond.movespeed) * (1 + bon.moveSpeedPct),
+      range:        base.range + cond.range,
+      abilityhaste: bon.abilityhaste + cond.abilityhaste,
+      tenacity:     bon.tenacity + cond.tenacity,
+      lethality:    bon.lethality + cond.lethality,
+      armorpen:     bon.armorpen + cond.armorpen,
+      magpenflat:   bon.magpenflat + cond.magpenflat,
+      magpenpct:    bon.magpenpct + cond.magpenpct,
+      omnivamp:     bon.omnivamp + cond.omnivamp,
     };
     Object.keys(total).forEach(k => {
       rBonDisplay[k] = total[k] - (totalWithoutRunes[k] || 0);
     });
 
-    return { base, total, rBon: rBonDisplay };
+    return { base, total, rBon: rBonDisplay, cond };
   }, [champDetail, level, equipped, selectedRunes]);
+
 
   // ── Shop Items ──────────────────────────────────────────────────────────────
   const shopItems = useMemo(() => {
@@ -1077,8 +1115,9 @@ function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, 
           const total = stats.total[cfg.k] ?? 0;
           const base  = stats.base[cfg.k]  ?? 0;
           const rBon  = stats.rBon?.[cfg.k] ?? 0;
-          const itemBonus = total - base - rBon;
-          const displayBonus = total - base; // item + rune
+          const cond  = stats.cond?.[cfg.k] ?? 0;
+          const itemBonus = total - base - rBon - cond;
+          const displayBonus = total - base; // item + rune + cond
 
           if (cfg.itemOnly && displayBonus < 0.001) return null;
 
@@ -1087,7 +1126,8 @@ function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, 
           const totalPct = Math.min(total / cfg.max, 1) * 100;
           const basePct  = total > 0 ? (base / total) * totalPct : 0;
           const itemPct  = total > 0 ? (itemBonus / total) * totalPct : 0;
-          const runePct  = totalPct - basePct - itemPct;
+          const condPct  = total > 0 ? (cond / total) * totalPct : 0;
+          const runePct  = totalPct - basePct - itemPct - condPct;
 
           return (
             <div key={cfg.k} className={`stat-row ${cfg.sub ? 'sub' : ''}`}>
@@ -1095,14 +1135,21 @@ function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, 
               <div className="stat-bar-container">
                 <div className="stat-bar-fill"  style={{ width:`${basePct}%`, background:barColor, opacity:0.75 }} />
                 <div className="stat-bar-bonus" style={{ width:`${itemPct}%`, background:`var(--c-gold)` }} />
+                <div className="stat-bar-cond"  style={{ width:`${condPct}%`, background:`var(--c-cyan, #22D3EE)` }} />
                 <div className="stat-bar-rune"  style={{ width:`${runePct}%`, background:`var(--c-rune, #EC4899)` }} />
               </div>
               <div className="stat-value">
                 <span className={displayBonus > 0.001 ? 'has-bonus' : ''}>{cfg.fmt(total)}</span>
-                {displayBonus > 0.001 && <span className="bonus-val">({cfg.fmtB(displayBonus)})</span>}
+                {displayBonus > 0.001 && (
+                  <div className="bonus-group">
+                    {cond > 0.001 && <span className="cond-val">+{cfg.fmt(cond)}</span>}
+                    <span className="bonus-val">({cfg.fmtB(displayBonus)})</span>
+                  </div>
+                )}
               </div>
             </div>
           );
+
         })}
       </div>
 
@@ -1364,26 +1411,13 @@ function ItemTooltip({ item, pos, ver, FMT, getStatLabel, format }) {
         </div>
       </div>
 
-      {itemStats.length > 0 && (
-        <div className="tooltip-stats">
-          {itemStats.map(([key, val]) => {
-            const [label, fval] = getStatLabel(key, val);
-            return (
-              <div key={key} className="tooltip-stat-row">
-                <span className="stat-name">{label}</span>
-                <span className="stat-val">{fval}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {descHtml && (
         <div 
           className="tooltip-desc"
           dangerouslySetInnerHTML={{ __html: descHtml }}
         />
       )}
+
 
     </div>
   );
