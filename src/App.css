@@ -460,7 +460,22 @@ input[type=range]::-webkit-slider-thumb {
   gap: 0.5rem;
 }
 
+.stat-bar-scaling {
+  height: 100%;
+  background: var(--c-blue, #00F9FF);
+  box-shadow: 0 0 10px rgba(0, 249, 255, 0.4);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scaling-val {
+  color: var(--c-blue, #00F9FF);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-shadow: 0 0 5px rgba(0, 249, 255, 0.3);
+}
+
 .stat-bar-cond {
+
   height: 100%;
   background: var(--c-cyan, #22D3EE);
   box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);

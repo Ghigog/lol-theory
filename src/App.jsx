@@ -129,14 +129,29 @@ const getStatLabel = (key, val) => {
   return [label, `+${val}`];
 };
 
+// Items whose stat contributions require a second calculation pass because they
+// are either multiplicative multipliers or only apply when a condition is met.
+// These are displayed separately in CYAN on the stat screen.
 const ADVANCED_PASSIVES = {
-  3089: { name: "Magical Opus",        ap_pct: 0.35 },                // Rabadon's
-  6665: { name: "Voidborne Resilience", bonus_res_pct: 0.30 },       // Jak'Sho
-  3011: { name: "Juxtaposition",      armor: 15, mr: 15, pen_pct: 0.30 }, // Terminus (max stacks)
-  3031: { name: "Perfection",         crit_dmg_pct: 0.40 },          // Infinity Edge
-  3040: { name: "Awe",                ap_from_mana_pct: 0.02 },      // Seraph's
-  3181: { name: "Boarding Party",     armor: 60, mr: 60 },           // Hullbreaker (alone, level 18)
+  // ── Scaling / Multiplier passives (Blue) ───────────────────────────
+  3089: { name: "Magical Opus",          ap_pct: 0.30,              type: "scaling" },      // Rabadon's
+  3042: { name: "Awe",                   ad_from_mana_pct: 0.02,    type: "scaling" },      // Muramana
+  3040: { name: "Awe",                   ap_from_mana_pct: 0.01,    type: "scaling" },      // Seraph's
+  3053: { name: "The Claws That Catch",  ad_from_base_ad_pct: 0.50, type: "scaling" },      // Sterak's
+  3083: { name: "Warmog's Vitality",     hp_from_item_hp_pct: 0.12, type: "scaling" },      // Warmog's
+  3121: { name: "Awe",                   hp_from_mana_pct: 0.08,    type: "scaling" },      // Fimbulwinter
+  3072: { name: "Engorge",               ad: 40,                    type: "scaling" },      // Bloodthirster (>50% HP)
+  3051: { name: "Tyranny",               ad_from_bonus_hp_pct: 0.02,type: "scaling" },      // Overlord's Bloodmail
+
+  // ── Triggered / On-Condition passives (Cyan) ─────────────────────────
+  6665: { name: "Voidborne Resilience",  bonus_res_pct: 0.30,       type: "triggered" },    // Jak'Sho
+  3073: { name: "Overdrive",             movespeed: 20, attackspeed: 0.50, type: "triggered" }, // Hexplate
+  3078: { name: "Quicken",              movespeed: 20,             type: "triggered" },    // Trinity Force
+  3302: { name: "Juxtaposition (Light)", armor: 15, mr: 15,         type: "triggered" },    // Terminus
+  3124: { name: "Seething Strike",       attackspeed: 0.32,         type: "triggered" },    // Guinsoo's (4 stacks)
+  3161: { name: "Dragonforce",           abilityhaste: 25,          type: "triggered" },    // Shojin
 };
+
 
 
 // ─── Main App ────────────────────────────────────────────────────────────────
@@ -364,84 +379,106 @@ export default function App() {
       if (st.PercentOmnivampMod)    bon.omnivamp     += st.PercentOmnivampMod;
     });
 
-    const cond = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, range:0, abilityhaste:0, tenacity:0, lethality:0, armorpen:0, magpenflat:0, magpenpct:0, omnivamp:0 };
+    const scal = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, range:0, abilityhaste:0, tenacity:0, lethality:0, armorpen:0, magpenflat:0, magpenpct:0, omnivamp:0 };
+    const trig = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, range:0, abilityhaste:0, tenacity:0, lethality:0, armorpen:0, magpenflat:0, magpenpct:0, omnivamp:0 };
 
     equipped.forEach(item => {
       if (!item) return;
       const adv = ADVANCED_PASSIVES[item.itemId];
       if (!adv) return;
 
-      if (adv.ap_pct) {
-        cond.ap += (bon.ap + rBon.ap) * adv.ap_pct;
-      }
+      const target = adv.type === "scaling" ? scal : trig;
+
+      if (adv.ap_pct)           target.ap += (bon.ap + rBon.ap) * adv.ap_pct;
       if (adv.bonus_res_pct) {
-        cond.armor += (bon.armor + rBon.armor) * adv.bonus_res_pct;
-        cond.mr += (bon.mr + rBon.mr) * adv.bonus_res_pct;
+        target.armor += (bon.armor + rBon.armor) * adv.bonus_res_pct;
+        target.mr    += (bon.mr    + rBon.mr)    * adv.bonus_res_pct;
       }
-      if (adv.armor) cond.armor += adv.armor;
-      if (adv.mr) cond.mr += adv.mr;
-      if (adv.pen_pct) {
-        cond.armorpen += adv.pen_pct;
-        cond.magpenpct += adv.pen_pct;
-      }
+      if (adv.armor)            target.armor += adv.armor;
+      if (adv.mr)               target.mr    += adv.mr;
+      if (adv.movespeed)        target.movespeed += adv.movespeed;
+      if (adv.attackspeed)      target.attackspeed += adv.attackspeed;
+      if (adv.abilityhaste)     target.abilityhaste += adv.abilityhaste;
+      if (adv.ad)               target.ad += adv.ad;
+
       if (adv.ap_from_mana_pct) {
         const totalMana = base.mp + bon.mp + rBon.mp;
-        cond.ap += totalMana * adv.ap_from_mana_pct;
+        target.ap += totalMana * adv.ap_from_mana_pct;
+      }
+      if (adv.ad_from_mana_pct) {
+        const totalMana = base.mp + bon.mp + rBon.mp;
+        target.ad += totalMana * adv.ad_from_mana_pct;
+      }
+      if (adv.ad_from_base_ad_pct) {
+        target.ad += base.ad * adv.ad_from_base_ad_pct;
+      }
+      if (adv.hp_from_mana_pct) {
+        const totalMana = base.mp + bon.mp + rBon.mp;
+        target.hp += totalMana * adv.hp_from_mana_pct;
+      }
+      if (adv.hp_from_item_hp_pct) {
+        target.hp += bon.hp * adv.hp_from_item_hp_pct;
+      }
+      if (adv.ad_from_bonus_hp_pct) {
+        const bonusHP = bon.hp + rBon.hp;
+        target.ad += bonusHP * adv.ad_from_bonus_hp_pct;
       }
     });
 
-    const total = {
-      hp:          base.hp + bon.hp + rBon.hp + cond.hp,
-      hpregen:     base.hpregen + bon.hpregen + rBon.hpregen + cond.hpregen,
-      mp:          base.mp + bon.mp + rBon.mp + cond.mp,
-      mpregen:     base.mpregen + bon.mpregen + rBon.mpregen + cond.mpregen,
-      ad:          base.ad + bon.ad + rBon.ad + cond.ad,
-      ap:          bon.ap + rBon.ap + cond.ap,
-      armor:       base.armor + bon.armor + rBon.armor + cond.armor,
-      mr:          base.mr + bon.mr + rBon.mr + cond.mr,
-      attackspeed: base.attackspeed * (1 + bon.attackspeed + rBon.attackspeed + cond.attackspeed),
-      critchance:  bon.critchance + rBon.critchance + cond.critchance,
-      lifesteal:   bon.lifesteal + rBon.lifesteal + cond.lifesteal,
-      movespeed:   (base.movespeed + bon.movespeed + rBon.movespeed + cond.movespeed) * (1 + bon.moveSpeedPct + rBon.moveSpeedPct),
-      range:       base.range + bon.range + rBon.range + cond.range,
-      abilityhaste: bon.abilityhaste + rBon.abilityhaste + cond.abilityhaste,
-      tenacity:     bon.tenacity + rBon.tenacity + cond.tenacity,
-      lethality:    bon.lethality + rBon.lethality + cond.lethality,
-      armorpen:     bon.armorpen + rBon.armorpen + cond.armorpen,
-      magpenflat:   bon.magpenflat + rBon.magpenflat + cond.magpenflat,
-      magpenpct:    bon.magpenpct + rBon.magpenpct + cond.magpenpct,
-      omnivamp:     bon.omnivamp + rBon.omnivamp + cond.omnivamp,
-    };
-
-    const rBonDisplay = {};
-    const totalWithoutRunes = {
-      hp:           base.hp + bon.hp + cond.hp,
-      hpregen:      base.hpregen + bon.hpregen + cond.hpregen,
-      mp:           base.mp + bon.mp + cond.mp,
-      mpregen:      base.mpregen + bon.mpregen + cond.mpregen,
-      ad:           base.ad + bon.ad + cond.ad,
-      ap:           bon.ap + cond.ap,
-      armor:        base.armor + bon.armor + cond.armor,
-      mr:           base.mr + bon.mr + cond.mr,
-      attackspeed:  base.attackspeed * (1 + bon.attackspeed + cond.attackspeed),
-      critchance:   bon.critchance + cond.critchance,
-      lifesteal:    bon.lifesteal + cond.lifesteal,
-      movespeed:    (base.movespeed + bon.movespeed + cond.movespeed) * (1 + bon.moveSpeedPct),
-      range:        base.range + cond.range,
-      abilityhaste: bon.abilityhaste + cond.abilityhaste,
-      tenacity:     bon.tenacity + cond.tenacity,
-      lethality:    bon.lethality + cond.lethality,
-      armorpen:     bon.armorpen + cond.armorpen,
-      magpenflat:   bon.magpenflat + cond.magpenflat,
-      magpenpct:    bon.magpenpct + cond.magpenpct,
-      omnivamp:     bon.omnivamp + cond.omnivamp,
-    };
-    Object.keys(total).forEach(k => {
-      rBonDisplay[k] = total[k] - (totalWithoutRunes[k] || 0);
+    const getFull = (s, t) => ({
+      hp:          base.hp + bon.hp + s.hp + t.hp,
+      hpregen:     base.hpregen + bon.hpregen + s.hpregen + t.hpregen,
+      mp:          base.mp + bon.mp + s.mp + t.mp,
+      mpregen:     base.mpregen + bon.mpregen + s.mpregen + t.mpregen,
+      ad:          base.ad + bon.ad + s.ad + t.ad,
+      ap:          bon.ap + s.ap + t.ap,
+      armor:       base.armor + bon.armor + s.armor + t.armor,
+      mr:          base.mr + bon.mr + s.mr + t.mr,
+      attackspeed: base.attackspeed * (1 + bon.attackspeed + s.attackspeed + t.attackspeed),
+      critchance:  bon.critchance + s.critchance + t.critchance,
+      lifesteal:   bon.lifesteal + s.lifesteal + t.lifesteal,
+      movespeed:   (base.movespeed + bon.movespeed + s.movespeed + t.movespeed) * (1 + bon.moveSpeedPct),
+      range:       base.range + s.range + t.range,
+      abilityhaste: bon.abilityhaste + s.abilityhaste + t.abilityhaste,
+      tenacity:     bon.tenacity + s.tenacity + t.tenacity,
+      lethality:    bon.lethality + s.lethality + t.lethality,
+      armorpen:     bon.armorpen + s.armorpen + t.armorpen,
+      magpenflat:   bon.magpenflat + s.magpenflat + t.magpenflat,
+      magpenpct:    bon.magpenpct + s.magpenpct + t.magpenpct,
+      omnivamp:     bon.omnivamp + s.omnivamp + t.omnivamp,
     });
 
-    return { base, total, rBon: rBonDisplay, cond };
+    const zero = { hp:0, hpregen:0, mp:0, mpregen:0, ad:0, ap:0, armor:0, mr:0, attackspeed:0, critchance:0, lifesteal:0, movespeed:0, range:0, abilityhaste:0, tenacity:0, lethality:0, armorpen:0, magpenflat:0, magpenpct:0, omnivamp:0 };
+    
+    const pass1 = getFull(zero, zero); // Base + Item Flat
+    const pass2 = getFull(scal, zero); // Base + Item Flat + Scaling
+    const pass3 = getFull(scal, trig); // Base + Item Flat + Scaling + Triggered
+    
+    // Add runes last
+    const total = { ...pass3 };
+    Object.keys(total).forEach(k => {
+      if (k === 'attackspeed') {
+        total[k] += base.attackspeed * rBon.attackspeed;
+      } else if (k === 'movespeed') {
+        total[k] = (pass3.movespeed / (1 + bon.moveSpeedPct)) * (1 + bon.moveSpeedPct + rBon.moveSpeedPct);
+      } else {
+        total[k] += rBon[k] || 0;
+      }
+    });
+
+    const scalDisplay = {};
+    const trigDisplay = {};
+    const rBonDisplay = {};
+
+    Object.keys(total).forEach(k => {
+      scalDisplay[k] = pass2[k] - pass1[k];
+      trigDisplay[k] = pass3[k] - pass2[k];
+      rBonDisplay[k] = total[k] - pass3[k];
+    });
+
+    return { base, total, rBon: rBonDisplay, scal: scalDisplay, trig: trigDisplay };
   }, [champDetail, level, equipped, selectedRunes]);
+
 
 
   // ── Shop Items ──────────────────────────────────────────────────────────────
@@ -1115,40 +1152,47 @@ function ChampionDetails({ champDetail, champAbilities, stats, level, setLevel, 
           const total = stats.total[cfg.k] ?? 0;
           const base  = stats.base[cfg.k]  ?? 0;
           const rBon  = stats.rBon?.[cfg.k] ?? 0;
-          const cond  = stats.cond?.[cfg.k] ?? 0;
-          const itemBonus = total - base - rBon - cond;
-          const displayBonus = total - base; // item + rune + cond
+          const scal  = stats.scal?.[cfg.k] ?? 0;
+          const trig  = stats.trig?.[cfg.k] ?? 0;
+          
+          const itemFlat = total - base - rBon - scal - trig;
+          const displayBonus = total - base;
 
           if (cfg.itemOnly && displayBonus < 0.001) return null;
 
           const label = cfg.resource ? formatResLabel(partype, cfg.sub) : cfg.label;
           const barColor = resourceBarColor(cfg);
+          
           const totalPct = Math.min(total / cfg.max, 1) * 100;
           const basePct  = total > 0 ? (base / total) * totalPct : 0;
-          const itemPct  = total > 0 ? (itemBonus / total) * totalPct : 0;
-          const condPct  = total > 0 ? (cond / total) * totalPct : 0;
-          const runePct  = totalPct - basePct - itemPct - condPct;
+          const itemPct  = total > 0 ? (itemFlat / total) * totalPct : 0;
+          const scalPct  = total > 0 ? (scal / total) * totalPct : 0;
+          const trigPct  = total > 0 ? (trig / total) * totalPct : 0;
+          const runePct  = totalPct - basePct - itemPct - scalPct - trigPct;
 
           return (
             <div key={cfg.k} className={`stat-row ${cfg.sub ? 'sub' : ''}`}>
               <div className="stat-label">{label}</div>
               <div className="stat-bar-container">
-                <div className="stat-bar-fill"  style={{ width:`${basePct}%`, background:barColor, opacity:0.75 }} />
-                <div className="stat-bar-bonus" style={{ width:`${itemPct}%`, background:`var(--c-gold)` }} />
-                <div className="stat-bar-cond"  style={{ width:`${condPct}%`, background:`var(--c-cyan, #22D3EE)` }} />
-                <div className="stat-bar-rune"  style={{ width:`${runePct}%`, background:`var(--c-rune, #EC4899)` }} />
+                <div className="stat-bar-fill"    style={{ width:`${basePct}%`, background:barColor, opacity:0.75 }} />
+                <div className="stat-bar-bonus"   style={{ width:`${itemPct}%`, background:`var(--c-gold)` }} />
+                <div className="stat-bar-scaling" style={{ width:`${scalPct}%`, background:`var(--c-blue, #00F9FF)` }} />
+                <div className="stat-bar-cond"    style={{ width:`${trigPct}%`, background:`var(--c-cyan, #22D3EE)` }} />
+                <div className="stat-bar-rune"    style={{ width:`${runePct}%`, background:`var(--c-rune, #EC4899)` }} />
               </div>
               <div className="stat-value">
                 <span className={displayBonus > 0.001 ? 'has-bonus' : ''}>{cfg.fmt(total)}</span>
                 {displayBonus > 0.001 && (
                   <div className="bonus-group">
-                    {cond > 0.001 && <span className="cond-val">+{cfg.fmt(cond)}</span>}
+                    {scal > 0.001 && <span className="scaling-val">+{cfg.fmt(scal)}</span>}
+                    {trig > 0.001 && <span className="cond-val">+{cfg.fmt(trig)}</span>}
                     <span className="bonus-val">({cfg.fmtB(displayBonus)})</span>
                   </div>
                 )}
               </div>
             </div>
           );
+
 
         })}
       </div>
