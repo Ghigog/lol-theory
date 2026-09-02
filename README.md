@@ -23,8 +23,8 @@
 This section provides critical context for AI agents and developers working on this codebase.
 
 ### 🏗️ Architecture & Core Logic
--   **Architecture**: See [architecture.md](file:///Users/dylangrowcoot/Documents/Personal%20Apps/lol-theory/architecture.md) for details on components and responsive design.
--   **Tickets & Tasks**: See [Tickets.md](file:///Users/dylangrowcoot/Documents/Personal%20Apps/lol-theory/Tickets.md) for the current development queue and task templates. **AI Agents should prioritize tickets listed there.**
+-   **Architecture**: See [architecture.md](architecture.md) for details on components and responsive design.
+-   **Tickets & Tasks**: See [Tickets.md](Tickets.md) for the current development queue and task templates. **AI Agents should prioritize tickets listed there.**
 
 > [!IMPORTANT]
 > **Mandatory Rule**: Always update the relevant documentation (README, Tickets, etc.) whenever changes are made to the codebase.
@@ -65,7 +65,7 @@ const growStat = (base, growth, lvl) => {
 ### Installation
 1. Clone the repository:
     ```bash
-    git clone https://github.com/your-username/lol-theory.git
+    git clone https://github.com/Ghigog/lol-theory.git
     ```
 2. Install dependencies:
     ```bash
@@ -101,7 +101,7 @@ lol-theory/
 ## 📂 Project Management
 
 For the current development queue, feature requests, and technical tasks, please refer to:
-👉 **[Tickets.md](file:///Users/dylangrowcoot/Documents/Personal%20Apps/lol-theory/Tickets.md)**
+👉 **[Tickets.md](Tickets.md)**
 
 ---
 
